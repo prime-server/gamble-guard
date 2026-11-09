@@ -1,0 +1,27 @@
+#!/bin/bash
+# gambleguard - re-applies the gambling block to the hosts file.
+# launchd runs this on an interval; that is what makes the block self-healing.
+MARK_A="# >>> gamble-guard >>>"
+MARK_B="# <<< gamble-guard <<<"
+LIST="${LIST:-/usr/local/share/gambleguard/blocklist.txt}"
+HOSTS="${HOSTS:-/etc/hosts}"       # overridable so the logic can be tested off a real system
+
+[ -r "$LIST" ] || exit 0
+TMP=$(mktemp) || exit 0
+trap 'rm -f "$TMP"' EXIT
+
+# keep everything else in the hosts file; drop any previous block of ours
+sed "/^${MARK_A}\$/,/^${MARK_B}\$/d" "$HOSTS" > "$TMP"
+printf '%s\n' "$MARK_A" >> "$TMP"
+cat "$LIST" >> "$TMP"
+printf '%s\n' "$MARK_B" >> "$TMP"
+
+if ! cmp -s "$TMP" "$HOSTS"; then
+  chflags noschg "$HOSTS" 2>/dev/null || true
+  cat "$TMP" > "$HOSTS"
+  chmod 644 "$HOSTS" 2>/dev/null || true
+  dscacheutil -flushcache 2>/dev/null || true
+  killall -HUP mDNSResponder 2>/dev/null || true
+  logger -t gambleguard "restored gambling block"
+fi
+exit 0
