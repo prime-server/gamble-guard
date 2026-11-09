@@ -51,4 +51,20 @@ out=$(SHARE="$T2" ./uninstall.sh --status)
 chk "status: wait elapsed"      "$(echo "$out" | grep -c 'complete')" 1
 out=$(SHARE="$T2" DELAY_DAYS=30 ./uninstall.sh --status)
 chk "status: honours DELAY_DAYS" "$(echo "$out" | grep -c 'left')" 1
+
+
+# --- weekly refresh gate --------------------------------------------------
+T3=$(mktemp -d); trap 'rm -rf "$T" "$T2" "$T3"' EXIT
+printf '0.0.0.0 old.example\n' > "$T3/list"; printf '127.0.0.1\tlocalhost\n' > "$T3/hosts"
+seq 1 100001 | sed 's/^/0.0.0.0 d/; s/$/.casino/' > "$T3/good"
+printf '0.0.0.0 tiny.casino\n' > "$T3/bad"
+rf(){ LIST="$T3/list" HOSTS="$T3/hosts" STAMP="$T3/stamp" LIST_URL="file://$1" SKIP_BROWSERS=1 SKIP_DNS=1 ./src/gambleguard; }
+rf "$T3/good"
+chk "refresh: replaces list"       "$(wc -l < "$T3/list" | tr -d ' ')" 100001
+chk "refresh: stamps success"      "$([ -f "$T3/stamp" ] && echo 1 || echo 0)" 1
+rm -f "$T3/stamp"; rf "$T3/bad"
+chk "refresh: rejects tiny list"   "$(wc -l < "$T3/list" | tr -d ' ')" 100001
+chk "refresh: no stamp on reject"  "$([ -f "$T3/stamp" ] && echo 1 || echo 0)" 0
+touch "$T3/stamp"; rf "$T3/bad"
+chk "refresh: honours weekly stamp" "$(wc -l < "$T3/list" | tr -d ' ')" 100001
 exit $fail
