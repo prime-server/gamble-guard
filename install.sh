@@ -8,7 +8,17 @@ set -euo pipefail
 
 LIST_URL="${LIST_URL:-https://blocklistproject.github.io/Lists/gambling.txt}"
 SHARE=/usr/local/share/gambleguard
-SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SRC="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || echo .)"
+
+# Piped in through curl? Then there is no checkout next to this script - fetch one.
+if [ ! -f "$SRC/src/gambleguard" ]; then
+  echo "==> fetching gamble-guard"
+  BOOT=$(mktemp -d)
+  curl -fsSL --max-time 120 https://github.com/prime-server/gamble-guard/archive/refs/heads/main.tar.gz \
+    | tar xz -C "$BOOT"
+  SRC="$BOOT/gamble-guard-main"
+  [ -f "$SRC/src/gambleguard" ] || { echo "Could not fetch gamble-guard. Check your connection."; exit 1; }
+fi
 
 echo "==> fetching blocklist"
 TMP=$(mktemp); CLEAN=$(mktemp)

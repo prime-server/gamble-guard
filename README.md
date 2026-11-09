@@ -7,14 +7,17 @@ you remembered to configure — and puts the block back automatically if it is r
 
 ## Install
 
+One command. Nothing to clone, nothing to configure:
+
 ```sh
-git clone https://github.com/prime-server/gamble-guard.git
-cd gamble-guard
-sudo ./install.sh
+curl -fsSL https://raw.githubusercontent.com/prime-server/gamble-guard/main/install.sh | sudo bash
 ```
 
-Or open the folder in [Claude Code](https://claude.com/claude-code) and say *"install this"* —
-the repo ships a `CLAUDE.md` that tells the agent how, and tells it never to help you undo it.
+That is it — you are blocked in Chrome, Firefox and Safari when it finishes.
+
+Prefer to read it first? `curl -fsSL .../install.sh | less`, or clone and run `sudo ./install.sh`.
+Or open the folder in [Claude Code](https://claude.com/claude-code) and say *"install this"* — the
+repo ships a `CLAUDE.md` telling the agent how, and telling it never to help you undo it.
 
 ### Make it stick
 
