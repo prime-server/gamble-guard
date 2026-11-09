@@ -61,7 +61,7 @@ if ($Partner) {
 # schtasks.exe is used rather than Register-ScheduledTask: the latter needs a
 # RepetitionDuration, and [TimeSpan]::MaxValue serialises to an out-of-range XML duration.
 foreach ($t in @(@{n='gamble-guard';f='gambleguard.ps1'}, @{n='gamble-guard-watch';f='watch.ps1'})) {
-  $cmd = "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File \"$Share\$($t.f)\""
+  $cmd = 'powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + $Share + '\' + $t.f + '"'
   schtasks.exe /Create /TN $t.n /TR $cmd /SC MINUTE /MO 2 /RU SYSTEM /RL HIGHEST /F | Out-Null
   if ($LASTEXITCODE -ne 0) { Write-Error "Could not create scheduled task $($t.n)"; exit 1 }
 }
