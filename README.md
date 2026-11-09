@@ -40,9 +40,18 @@ Three pieces, each covering a way the previous one gets defeated:
    are back before you finish typing a URL. The installed files also carry the system-immutable
    flag (`chflags schg`), so they resist casual deletion.
 
-3. **Chrome's secure DNS is turned off by policy.** A browser doing DNS-over-HTTPS resolves names
-   itself and never consults `/etc/hosts` — which silently defeats steps 1 and 2. Most homemade
-   blockers miss this and quietly do nothing.
+3. **Chrome and Firefox have DNS-over-HTTPS forced off by policy.** A browser doing DoH resolves
+   names itself and never consults `/etc/hosts` — which silently defeats steps 1 and 2. Firefox in
+   particular ships `network.trr.mode` settings that can make it DoH-only, ignoring the hosts file
+   completely. Both are locked off by enterprise policy, and re-applied on every run so a browser
+   update cannot quietly restore them. Safari uses the system resolver, so it is covered by step 1.
+
+   **All three browsers are covered: Chrome, Firefox, Safari.**
+
+4. **Crypto-casino mirrors are pre-blocked.** `extra-domains.txt` carries ~2,200 brand-and-TLD
+   permutations (rainbet, roobet, betway, rollbit, duelbits, gamdom, bc.game, stake and friends),
+   because these brands reappear on a new TLD within days of being blocked and a hosts file has no
+   wildcards.
 
 ## Updating the list
 
@@ -67,8 +76,11 @@ Worth stating plainly, because a tool you trust too much is worse than one you u
 - **A VPN, a phone, or another computer routes around it entirely.** This protects one Mac.
 - **Hosts entries have no wildcards.** A brand-new domain is unblocked until the upstream list
   catches up. Re-run the installer periodically.
-- **iCloud Private Relay and non-Chrome browsers with DoH enabled can bypass the hosts file.**
-  Turn Private Relay off in System Settings → Apple Account → iCloud.
+- **iCloud Private Relay can bypass the hosts file in Safari.** Turn it off in
+  System Settings → Apple Account → iCloud → Private Relay.
+- **A paid blocker whose subscription lapses can be worse than nothing.** If it pins your browser
+  to its own DNS resolver and that resolver stops filtering, the browser skips your hosts file and
+  gets unfiltered answers. Check that any such tool is actually still blocking.
 
 If you want something genuinely harder to undo, have someone you trust set a **Screen Time
 passcode** on the machine and not tell it to you. The strongest version of this tool is another

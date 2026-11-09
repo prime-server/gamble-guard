@@ -1,27 +1,54 @@
 #!/bin/bash
-# gambleguard - re-applies the gambling block to the hosts file.
-# launchd runs this on an interval; that is what makes the block self-healing.
+# gambleguard - re-applies the gambling block and the browser policies that keep it honest.
+# launchd runs this on an interval; that is what makes it self-healing.
 MARK_A="# >>> gamble-guard >>>"
 MARK_B="# <<< gamble-guard <<<"
 LIST="${LIST:-/usr/local/share/gambleguard/blocklist.txt}"
 HOSTS="${HOSTS:-/etc/hosts}"       # overridable so the logic can be tested off a real system
 
-[ -r "$LIST" ] || exit 0
-TMP=$(mktemp) || exit 0
-trap 'rm -f "$TMP"' EXIT
+# --- 1. the hosts block ---------------------------------------------------
+if [ -r "$LIST" ]; then
+  TMP=$(mktemp) || exit 0
+  trap 'rm -f "$TMP"' EXIT
+  sed "/^${MARK_A}\$/,/^${MARK_B}\$/d" "$HOSTS" > "$TMP"   # keep everything else in the file
+  printf '%s\n' "$MARK_A" >> "$TMP"
+  cat "$LIST" >> "$TMP"
+  printf '%s\n' "$MARK_B" >> "$TMP"
+  if ! cmp -s "$TMP" "$HOSTS"; then
+    chflags noschg "$HOSTS" 2>/dev/null || true
+    cat "$TMP" > "$HOSTS"
+    chmod 644 "$HOSTS" 2>/dev/null || true
+    dscacheutil -flushcache 2>/dev/null || true
+    killall -HUP mDNSResponder 2>/dev/null || true
+    logger -t gambleguard "restored gambling block"
+  fi
+fi
 
-# keep everything else in the hosts file; drop any previous block of ours
-sed "/^${MARK_A}\$/,/^${MARK_B}\$/d" "$HOSTS" > "$TMP"
-printf '%s\n' "$MARK_A" >> "$TMP"
-cat "$LIST" >> "$TMP"
-printf '%s\n' "$MARK_B" >> "$TMP"
+# --- 2. browser DNS ------------------------------------------------------
+# A browser doing DNS-over-HTTPS resolves names itself and never reads the hosts
+# file, which silently defeats everything above. Safari uses the system resolver,
+# so it needs nothing here; Chrome and Firefox both need DoH forced off.
+[ "${SKIP_BROWSERS:-}" = 1 ] && exit 0
 
-if ! cmp -s "$TMP" "$HOSTS"; then
-  chflags noschg "$HOSTS" 2>/dev/null || true
-  cat "$TMP" > "$HOSTS"
-  chmod 644 "$HOSTS" 2>/dev/null || true
-  dscacheutil -flushcache 2>/dev/null || true
-  killall -HUP mDNSResponder 2>/dev/null || true
-  logger -t gambleguard "restored gambling block"
+CHROME=/Library/Preferences/com.google.Chrome
+if [ -d "/Applications/Google Chrome.app" ] || [ -f "$CHROME.plist" ]; then
+  defaults write "$CHROME" DnsOverHttpsMode -string "off"
+  defaults write "$CHROME" BuiltInDnsClientEnabled -bool false
+  # a stale template keeps pointing Chrome at a third-party resolver
+  defaults delete "$CHROME" DnsOverHttpsTemplates 2>/dev/null || true
+fi
+
+FIREFOX=/Library/Preferences/org.mozilla.firefox
+defaults write "$FIREFOX" EnterprisePoliciesEnabled -bool true
+defaults write "$FIREFOX" DNSOverHTTPS -dict Enabled -bool false Locked -bool true
+defaults write "$FIREFOX" "Preferences__network.trr.mode__Value" -int 5     # 5 = DoH off
+defaults write "$FIREFOX" "Preferences__network.trr.mode__Status" -string locked
+defaults write "$FIREFOX" "Preferences__network.trr.uri__Value" -string ""
+defaults write "$FIREFOX" "Preferences__network.trr.uri__Status" -string locked
+
+FFDIST="/Applications/Firefox.app/Contents/Resources/distribution"
+if [ -d "/Applications/Firefox.app" ]; then
+  mkdir -p "$FFDIST"
+  printf '%s\n' '{"policies":{"DNSOverHTTPS":{"Enabled":false,"Locked":true}}}' > "$FFDIST/policies.json"
 fi
 exit 0
