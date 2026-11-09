@@ -1,6 +1,7 @@
 #!/bin/bash
 # Rebuilds lists/ from every actively maintained public gambling blocklist.
 # Runs weekly in GitHub Actions (see .github/workflows/update-blocklist.yml); clients pull the result.
+# CI (GNU tools) is the canonical build; BSD sed/grep on macOS silently drop some lines.
 # This is the "research" step: hundreds of volunteers already hunt new casinos daily - we aggregate them.
 set -euo pipefail
 cd "$(dirname "$0")/.."

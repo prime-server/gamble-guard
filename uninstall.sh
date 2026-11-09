@@ -70,6 +70,11 @@ rm -f /usr/local/bin/gambleguard /usr/local/bin/gambleguard-watch \
   /Library/LaunchDaemons/com.gambleguard.plist /Library/LaunchDaemons/com.gambleguard.watch.plist
 rm -rf "$SHARE"
 
+# hand DNS back to DHCP, but only on services the guard pointed at the filtering resolver
+DNS="194.242.2.6 2a07:e340::6"
+networksetup -listallnetworkservices 2>/dev/null | grep -v -e '^An asterisk' -e '^\*' | while IFS= read -r S; do
+  [ "$(networksetup -getdnsservers "$S" 2>/dev/null | paste -sd' ' -)" = "$DNS" ] && networksetup -setdnsservers "$S" empty
+done || true
 TMP=$(mktemp); trap 'rm -f "$TMP"' EXIT
 sed "/^${MARK_A}\$/,/^${MARK_B}\$/d" /etc/hosts > "$TMP"
 cat "$TMP" > /etc/hosts; chmod 644 /etc/hosts

@@ -23,7 +23,11 @@ fi
 echo "==> fetching blocklist"
 TMP=$(mktemp); CLEAN=$(mktemp)
 trap 'rm -f "$TMP" "$CLEAN"' EXIT
-curl -fsSL --max-time 120 "$LIST_URL" -o "$TMP"
+if [ -f "$SRC/lists/full.txt" ]; then
+  cp "$SRC/lists/full.txt" "$TMP"        # prebuilt weekly aggregate (~660k domains)
+else
+  curl -fsSL --max-time 120 "$LIST_URL" -o "$TMP"
+fi
 grep -E '^0\.0\.0\.0 [a-zA-Z0-9][a-zA-Z0-9.-]*$' "$TMP" | tr 'A-Z' 'a-z' | sort -u > "$CLEAN"
 [ -f "$SRC/extra-domains.txt" ] && cat "$SRC/extra-domains.txt" >> "$CLEAN" && sort -u "$CLEAN" -o "$CLEAN"
 COUNT=$(grep -c . "$CLEAN" || true)
@@ -39,6 +43,7 @@ chflags noschg /usr/local/bin/gambleguard /usr/local/bin/gambleguard-watch \
 echo "==> installing"
 mkdir -p "$SHARE/pristine"
 install -m 644 "$CLEAN" "$SHARE/blocklist.txt"
+touch "$SHARE/.refreshed"
 install -m 755 "$SRC/src/gambleguard"       /usr/local/bin/gambleguard
 install -m 755 "$SRC/src/gambleguard-watch" /usr/local/bin/gambleguard-watch
 install -m 644 -o root -g wheel "$SRC/src/com.gambleguard.plist"       /Library/LaunchDaemons/com.gambleguard.plist
@@ -65,7 +70,7 @@ for L in com.gambleguard com.gambleguard.watch; do
   launchctl bootout "system/$L" 2>/dev/null || true
   launchctl bootstrap system "/Library/LaunchDaemons/$L.plist"
 done
-/usr/local/bin/gambleguard          # hosts block + Chrome/Firefox DNS policy
+/usr/local/bin/gambleguard          # hosts block + upstream resolver + Chrome/Firefox DNS policy
 
 chflags schg /usr/local/bin/gambleguard /usr/local/bin/gambleguard-watch \
   /Library/LaunchDaemons/com.gambleguard.plist \
@@ -75,6 +80,9 @@ chflags schg /usr/local/bin/gambleguard /usr/local/bin/gambleguard-watch \
 echo
 echo "Done. $COUNT domains blocked across Chrome, Firefox and Safari."
 echo "Two daemons re-apply it every 120s and restore each other if deleted."
+echo "System DNS now goes through Mullvad's family resolver (194.242.2.6), which also filters"
+echo "gambling - that catches new mirrors before the list does. Tailscale is left alone."
+echo "Turn OFF iCloud Private Relay (System Settings > Apple Account > iCloud) or Safari bypasses it."
 [ -f "$SHARE/partner.sha256" ] && echo "Removal requires the partner passphrase." \
   || echo "Removal requires a 7-day cooling-off: sudo ./uninstall.sh"
 echo "Verify:  dscacheutil -q host -a name bet365.com"

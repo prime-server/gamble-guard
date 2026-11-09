@@ -1,125 +1,121 @@
 # gamble-guard
 
-A free, self-healing gambling blocker for macOS. No account, no subscription, no kernel extension.
+A free, open-source gambling blocker that is built to be hard to remove. macOS, Windows, iPhone, Android.
+No account, no subscription, no kernel extension, no telemetry.
 
-It blocks ~340,000 gambling domains system-wide — every browser and every app, not just the one
-you remembered to configure — and puts the block back automatically if it is removed.
+It blocks **~660,000 gambling domains** system-wide — every browser, every app — and puts itself back
+when removed. The list is rebuilt automatically every week from every actively maintained public
+gambling blocklist, so new casinos get blocked without you doing anything.
 
 ## Install
 
-One command. Nothing to clone, nothing to configure:
+**macOS** — one command, needs your password:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/prime-server/gamble-guard/main/install.sh | sudo bash
 ```
 
-That is it — you are blocked in Chrome, Firefox and Safari when it finishes.
+**Windows** — one command in an *Administrator* PowerShell:
 
-Prefer to read it first? `curl -fsSL .../install.sh | less`, or clone and run `sudo ./install.sh`.
-Or open the folder in [Claude Code](https://claude.com/claude-code) and say *"install this"* — the
-repo ships a `CLAUDE.md` telling the agent how, and telling it never to help you undo it.
+```powershell
+irm https://raw.githubusercontent.com/prime-server/gamble-guard/main/win/install.ps1 | iex
+```
+
+**iPhone / iPad** — open [`mobile/gamble-guard.mobileconfig`](mobile/gamble-guard.mobileconfig) on the
+device and install it, then follow [`mobile/QUICKSTART.md`](mobile/QUICKSTART.md).
+
+**Android** — Settings → Network → Private DNS → `family.dns.mullvad.net`. Details in
+[`mobile/README.md`](mobile/README.md).
+
+Or open this folder in [Claude Code](https://claude.com/claude-code) and say *"install this"* — the repo
+ships a `CLAUDE.md` that tells the agent how, and tells it never to help you undo it.
+
+Verify (desktop): `bet365.com` should fail to load, and resolve to `0.0.0.0` or nothing.
 
 ### Make it stick
 
-```sh
-PARTNER=1 sudo ./install.sh                  # partner sets a passphrase you never see
-sudo ./harden.sh partneradmin "Their Name"   # partner holds admin; you cannot sudo at all
-```
+| Mode | What it adds | Can the user remove it? |
+|---|---|---|
+| default | watchdog pair, immutable files, 7-day cooling-off on uninstall | yes, with the admin password and patience |
+| `PARTNER=1 sudo ./install.sh` | a passphrase someone else holds; removal requires it | only by bypassing the installer by hand |
+| `sudo ./harden.sh <user> "Name"` | partner-held admin account, you become a Standard user | **no** — there is no `sudo` to shortcut with |
 
-Or, in one line:
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/prime-server/gamble-guard/main/install.sh | sudo bash
-```
-
-(Piping a script into a root shell is a habit worth distrusting in general. Read `install.sh`
-first — it is about 50 lines.)
-
-Verify it worked:
-
-```sh
-dscacheutil -q host -a name bet365.com     # should return 0.0.0.0, or nothing
-```
+The same tiers exist on Windows (`install.ps1 -Partner`); account hardening there is a Standard account
+with the partner holding the Administrator password.
 
 ## How it works
 
-Three pieces, each covering a way the previous one gets defeated:
+Five layers. Each one covers the way the previous one gets defeated.
 
-1. **A hosts-file block.** Gambling domains are pointed at `0.0.0.0` in `/etc/hosts`, so they fail
-   to resolve for every application on the machine, not just inside one browser's settings.
+1. **A filtering upstream resolver.** Every network interface is pointed at Mullvad's free `family`
+   DNS, which refuses to resolve gambling domains — verified against bet365, Stake, Roobet, Rainbet,
+   Loto-Québec, Betway, DraftKings, Rollbit, Duelbits and bc.game, and passing GitHub, Google and the
+   rest of the internet. It is the only free public resolver we found that actually blocks gambling;
+   Cloudflare, OpenDNS, CleanBrowsing, AdGuard and ControlD "family" filters all let it through.
+   This layer protects you even if the hosts file below is deleted, and it is what phones use.
 
-2. **A launchd daemon that re-applies it every 120 seconds.** This is the part that matters. A
-   blocklist you can delete in a weak moment is not a blocklist. Edit `/etc/hosts` and the entries
-   are back before you finish typing a URL. The installed files also carry the system-immutable
-   flag (`chflags schg`), so they resist casual deletion.
+2. **A hosts-file block.** ~660k domains pointed at `0.0.0.0` on macOS; a 26k compact brand list on
+   Windows, whose DNS client stalls on large hosts files (measured: lookups hung at 344k lines).
+   Hosts entries win even if someone changes the DNS server back.
 
-3. **Chrome and Firefox have DNS-over-HTTPS forced off by policy.** A browser doing DoH resolves
-   names itself and never consults `/etc/hosts` — which silently defeats steps 1 and 2. Firefox in
-   particular ships `network.trr.mode` settings that can make it DoH-only, ignoring the hosts file
-   completely. Both are locked off by enterprise policy, and re-applied on every run so a browser
-   update cannot quietly restore them. Safari uses the system resolver, so it is covered by step 1.
+3. **Browsers are forced onto the system resolver.** Chrome, Edge, Brave and Firefox have
+   DNS-over-HTTPS turned *off* and locked by enterprise policy, because a browser doing its own DoH
+   never consults layers 1 or 2. Most homemade blockers miss this and quietly do nothing.
 
-   **All three browsers are covered: Chrome, Firefox, Safari.**
+4. **Two daemons that restore each other** (launchd on macOS, SYSTEM scheduled tasks on Windows) re-apply
+   layers 1–3 every two minutes, restore each other if one is deleted, and refresh the blocklist weekly.
+   Installed files carry the immutable flag / are locked to SYSTEM.
 
-4. **Crypto-casino mirrors are pre-blocked.** `extra-domains.txt` carries ~2,200 brand-and-TLD
-   permutations (rainbet, roobet, betway, rollbit, duelbits, gamdom, bc.game, stake and friends),
-   because these brands reappear on a new TLD within days of being blocked and a hosts file has no
-   wildcards.
+5. **Removal is slow by design.** `uninstall.sh` starts a 7-day cooling-off on first run and removes
+   nothing. If a partner set a passphrase, it is required instead. The addiction operates on a
+   timescale of minutes; this operates on a timescale of a week.
 
-## Updating the list
+### Autoresearch
 
-Re-run `sudo ./install.sh`. It re-downloads the blocklist and reinstalls.
-
-Use a different list with `LIST_URL=https://... sudo ./install.sh`. Any file of
-`0.0.0.0 domain` lines works.
-
-## Uninstall
-
-```sh
-sudo ./uninstall.sh
-```
+`tools/build-list.sh` merges four independently maintained gambling blocklists (The Blocklist Project,
+hagezi, Sinfonietta, StevenBlack), generates TLD mirrors for brands that hop domains, refuses to publish
+if a source vanishes or a major infrastructure domain sneaks in, and writes `lists/`. A GitHub Action
+runs it every Monday and commits the result; every installed client pulls the new list on its next
+weekly refresh. Mullvad updates its own filter server-side. Nobody has to ship a release for a new
+casino to get blocked.
 
 ## Honest limitations
 
-Worth stating plainly, because a tool you trust too much is worse than one you understand:
+- **With the admin password, you can remove the default install.** Everything above except `harden.sh`
+  is friction, not a lock. Friction is usually the whole fight — a craving lasts minutes, a 7-day
+  cooling-off does not — but anyone with `sudo` can shortcut it. Do not trust any blocker that claims
+  otherwise while leaving you as an admin.
+- **Phones are the weakest platform.** iOS and Android cannot run daemons; an unsupervised user can
+  revert the DNS setting in seconds. The real lock there is Screen Time / Family Link with a passcode
+  someone else holds. [`mobile/README.md`](mobile/README.md) is blunt about this.
+- **Another device, a VPN or a phone hotspot routes around all of it.** This protects the devices it is on.
+- **iCloud Private Relay bypasses layers 1 and 2 in Safari.** Turn it off: System Settings → Apple
+  Account → iCloud → Private Relay.
+- **A dead paid blocker can be worse than nothing.** If a lapsed subscription left your browser pinned to
+  a resolver that no longer filters, it also made your browser skip the hosts file. The installer clears
+  that; check any such tool is actually still blocking.
 
-- **With the admin password, you can remove this.** Plain install is a speed bump: two daemons
-  that restore each other, files flagged immutable, and a 7-day cooling-off on `uninstall.sh`.
-  That turns a thirty-second impulse into a week-long deliberate act, which is usually the whole
-  fight — but anyone with `sudo` can shortcut it.
-- **`harden.sh` is the only unremovable configuration.** Without admin rights there is no `sudo`,
-  so there is nothing to shortcut. Everything else is friction, honestly described.
-  Do not believe any blocker that claims otherwise while leaving you as an admin.
-- **A VPN, a phone, or another computer routes around it entirely.** This protects one Mac.
-- **Hosts entries have no wildcards.** A brand-new domain is unblocked until the upstream list
-  catches up. Re-run the installer periodically.
-- **iCloud Private Relay can bypass the hosts file in Safari.** Turn it off in
-  System Settings → Apple Account → iCloud → Private Relay.
-- **A paid blocker whose subscription lapses can be worse than nothing.** If it pins your browser
-  to its own DNS resolver and that resolver stops filtering, the browser skips your hosts file and
-  gets unfiltered answers. Check that any such tool is actually still blocking.
+If gambling is costing you more than money, the strongest version of this tool is another person.
 
-If you want something genuinely harder to undo, have someone you trust set a **Screen Time
-passcode** on the machine and not tell it to you. The strongest version of this tool is another
-person.
+## Updating, uninstalling, testing
+
+```sh
+sudo ./install.sh          # re-run to update (the daemons also refresh the list weekly)
+sudo ./uninstall.sh        # starts the 7-day cooling-off, or completes it
+sudo ./uninstall.sh --status
+./tests/selftest.sh        # no root needed
+```
 
 ## Credits
 
-Blocklist from [The Blocklist Project](https://github.com/blocklistproject/Lists).
+Blocklists: [The Blocklist Project](https://github.com/blocklistproject/Lists),
+[hagezi](https://github.com/hagezi/dns-blocklists), [Sinfonietta](https://github.com/Sinfonietta/hostfiles),
+[StevenBlack](https://github.com/StevenBlack/hosts). Filtering DNS: [Mullvad](https://mullvad.net/en/help/dns-over-https-and-dns-over-tls).
 
 ## Support
 
-If gambling is costing you more than money: Canada 1-866-531-2600 · US 1-800-522-4700 ·
-UK 0808 8020 133 · or <https://www.gamblingtherapy.org>.
+Canada 1-866-531-2600 · US 1-800-522-4700 · UK 0808 8020 133 · <https://www.gamblingtherapy.org>
 
 ## License
 
 MIT — see [LICENSE](LICENSE).
-
-## Tests
-
-```sh
-./tests/selftest.sh
-```
-
-No root required; it runs the rewrite logic against a temporary file.

@@ -6,6 +6,23 @@ MARK_B="# <<< gamble-guard <<<"
 LIST="${LIST:-/usr/local/share/gambleguard/blocklist.txt}"
 HOSTS="${HOSTS:-/etc/hosts}"       # overridable so the logic can be tested off a real system
 
+# --- 0. weekly list refresh --------------------------------------------------
+# A GitHub Action rebuilds lists/ every Monday from four upstream blocklists; pull it so
+# newly discovered casinos get blocked without anyone shipping a release.
+LIST_URL="${LIST_URL:-https://raw.githubusercontent.com/prime-server/gamble-guard/main/lists/full.txt}"
+STAMP="${STAMP:-/usr/local/share/gambleguard/.refreshed}"
+if [ "${SKIP_REFRESH:-}" != 1 ] && { [ ! -f "$STAMP" ] || [ -n "$(find "$STAMP" -mtime +6 2>/dev/null)" ]; }; then
+  NEW=$(mktemp)
+  # a bad download must never replace a good list: require a plausible size
+  if curl -fsSL --max-time 300 "$LIST_URL" -o "$NEW" && [ "$(grep -c '^0\.0\.0\.0 ' "$NEW")" -ge 100000 ]; then
+    chflags noschg "$LIST" 2>/dev/null || true
+    install -m 644 "$NEW" "$LIST" && chflags schg "$LIST" 2>/dev/null
+    touch "$STAMP"
+    logger -t gambleguard "refreshed blocklist: $(wc -l < "$LIST" | tr -d ' ') entries"
+  fi
+  rm -f "$NEW"
+fi
+
 # --- 1. the hosts block ---------------------------------------------------
 if [ -r "$LIST" ]; then
   TMP=$(mktemp) || exit 0
@@ -24,10 +41,29 @@ if [ -r "$LIST" ]; then
   fi
 fi
 
-# --- 2. browser DNS ------------------------------------------------------
+# --- 2. upstream filtering resolver ----------------------------------------
+# A hosts file has no wildcards, so a brand-new mirror is open until the list catches
+# up. Pointing the OS resolver at Mullvad's free family DNS (filters gambling, no
+# account) closes that gap: with browser DoH forced off below, every lookup goes
+# hosts file first, then this. iCloud Private Relay must be off or Safari skips both.
+DNS="194.242.2.6 2a07:e340::6"
+if [ "${SKIP_DNS:-}" != 1 ]; then
+  # skip disabled (*) services, Thunderbolt Bridge (never carries DNS) and Tailscale,
+  # whose entry tailscaled owns for MagicDNS - overriding it breaks tailnet lookups
+  networksetup -listallnetworkservices 2>/dev/null \
+    | grep -v -e '^An asterisk' -e '^\*' -e '^Thunderbolt Bridge$' -e '^Tailscale$' \
+    | while IFS= read -r S; do
+      [ "$(networksetup -getdnsservers "$S" 2>/dev/null | paste -sd' ' -)" = "$DNS" ] && continue   # already set, no churn
+      # $DNS unquoted on purpose: two servers, two arguments
+      networksetup -setdnsservers "$S" $DNS 2>/dev/null && logger -t gambleguard "set upstream resolver on $S"
+    done
+fi
+
+# --- 3. browser DNS ------------------------------------------------------
 # A browser doing DNS-over-HTTPS resolves names itself and never reads the hosts
 # file, which silently defeats everything above. Safari uses the system resolver,
-# so it needs nothing here; Chrome and Firefox both need DoH forced off.
+# so it needs nothing here; Chrome and Firefox both need DoH forced off. Keeping DoH
+# off is also what routes them through the upstream resolver above.
 [ "${SKIP_BROWSERS:-}" = 1 ] && exit 0
 
 CHROME=/Library/Preferences/com.google.Chrome
@@ -46,7 +82,7 @@ defaults write "$FIREFOX" "Preferences__network.trr.mode__Status" -string locked
 defaults write "$FIREFOX" "Preferences__network.trr.uri__Value" -string ""
 defaults write "$FIREFOX" "Preferences__network.trr.uri__Status" -string locked
 
-# --- 3. keep the peer watchdog alive (it does the same for this script) ---
+# --- 4. keep the peer watchdog alive (it does the same for this script) ---
 PRISTINE=/usr/local/share/gambleguard/pristine
 if [ -d "$PRISTINE" ]; then
   [ -x /usr/local/bin/gambleguard-watch ] || { install -m 755 "$PRISTINE/gambleguard-watch" /usr/local/bin/gambleguard-watch 2>/dev/null && chflags schg /usr/local/bin/gambleguard-watch 2>/dev/null; }
