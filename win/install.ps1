@@ -1,6 +1,6 @@
 # gamble-guard installer for Windows. Run from an ELEVATED PowerShell:
 #   irm https://raw.githubusercontent.com/prime-server/gamble-guard/main/win/install.ps1 | iex
-param([switch]$Partner)
+param([switch]$Partner, [int]$LockDays = 0, [switch]$NoVpnBlock, [switch]$Yes)
 $ErrorActionPreference = 'Stop'
 
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
@@ -9,23 +9,30 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
 }
 
 $Repo   = 'https://raw.githubusercontent.com/prime-server/gamble-guard/main'
+
+if (-not $Yes) {
+  Write-Host ''
+  Write-Host '  This is no joke. Once gamble-guard is installed, it cannot be uninstalled.' -ForegroundColor Yellow
+  Write-Host '  Not in a week, not in a year. There is no uninstall command.'
+  Write-Host '  Are you sure this is what you want to do?'
+  Write-Host '  (Are you sure you want to save yourself? Pour la derogation... there is none.)' -ForegroundColor DarkGray
+  $ans = Read-Host '  Type YES to continue'
+  if ($ans -ne 'YES') { Write-Host 'Nothing installed.'; exit 1 }
+}
 $ListUrl= 'https://blocklistproject.github.io/Lists/gambling.txt'
 $Share  = 'C:\ProgramData\gamble-guard'
 
-Write-Host '==> fetching blocklist'
-$raw = (Invoke-WebRequest -UseBasicParsing -Uri $ListUrl -TimeoutSec 180).Content -split "`n"
-$set = [Collections.Generic.HashSet[string]]::new()
-foreach ($l in $raw) {
-  $t = $l.Trim()
-  if ($t -match '^0\.0\.0\.0\s+([A-Za-z0-9][A-Za-z0-9.\-]*)$') { [void]$set.Add('0.0.0.0 ' + $Matches[1].ToLower()) }
-}
-try {
-  foreach ($l in ((Invoke-WebRequest -UseBasicParsing -Uri "$Repo/extra-domains.txt" -TimeoutSec 60).Content -split "`n")) {
-    $t = $l.Trim(); if ($t -match '^0\.0\.0\.0\s+\S+$') { [void]$set.Add($t.ToLower()) }
-  }
-} catch { Write-Host '    (extra-domains.txt unavailable, continuing)' }
-if ($set.Count -lt 1000) { Write-Error "Blocklist looks wrong ($($set.Count) entries)."; exit 1 }
-Write-Host "    $($set.Count) domains"
+Write-Host '==> fetching gamble-guard'
+$zip = Join-Path $env:TEMP 'gg.zip'; $ex = Join-Path $env:TEMP 'gg-src'
+Remove-Item -Recurse -Force $ex -EA SilentlyContinue
+Invoke-WebRequest -UseBasicParsing -TimeoutSec 180 `
+  -Uri 'https://codeload.github.com/prime-server/gamble-guard/zip/refs/heads/main' -OutFile $zip
+Expand-Archive -Path $zip -DestinationPath $ex -Force
+$root = Join-Path $ex 'gamble-guard-main'
+# Windows gets the compact list: its DNS client stalls above ~50k hosts lines
+$set = [IO.File]::ReadAllLines((Join-Path $root 'lists\compact.txt')) | Where-Object { $_ -match '^0\.0\.0\.0 \S+$' }
+if ($set.Count -lt 5000) { Write-Error "Blocklist looks wrong ($($set.Count) entries)."; exit 1 }
+Write-Host "    $($set.Count) domains (compact list; Mullvad DNS covers the rest)"
 
 Write-Host '==> installing'
 # A previous install locked this folder to SYSTEM + Administrators; reclaim it so
@@ -36,16 +43,36 @@ if (Test-Path $Share) {
 }
 New-Item -ItemType Directory -Path $Share -Force | Out-Null
 [IO.File]::WriteAllLines((Join-Path $Share 'blocklist.txt'), ([string[]]$set))
-# Pull the companion scripts from the repo zip rather than raw.githubusercontent,
-# which is CDN-cached and can serve a stale copy for several minutes after a push.
-$zip = Join-Path $env:TEMP 'gg.zip'; $ex = Join-Path $env:TEMP 'gg-src'
-Remove-Item -Recurse -Force $ex -EA SilentlyContinue
-Invoke-WebRequest -UseBasicParsing -TimeoutSec 180 `
-  -Uri 'https://codeload.github.com/prime-server/gamble-guard/zip/refs/heads/main' -OutFile $zip
-Expand-Archive -Path $zip -DestinationPath $ex -Force
-$win = Join-Path $ex 'gamble-guard-main\win'
 foreach ($f in 'gambleguard.ps1','watch.ps1','uninstall.ps1') {
-  Copy-Item -Path (Join-Path $win $f) -Destination (Join-Path $Share $f) -Force
+  Copy-Item -Path (Join-Path $root "win\$f") -Destination (Join-Path $Share $f) -Force
+}
+Set-Content (Join-Path $Share '.refreshed') (Get-Date)
+# VPN/proxy/DoH-bypass list is on by default (-NoVpnBlock to opt out); the compact gambling list
+# plus this stays well under the ~50k hosts lines Windows' DNS client tolerates
+if (-not $NoVpnBlock -and (Test-Path (Join-Path $root 'lists\vpn.txt'))) {
+  # Windows' DNS client slows down past ~45k hosts lines; fit the VPN list into what is left,
+  # collapsing it to registrable domains if needed, and say so if even that does not fit.
+  $budget = 45000 - $set.Count
+  $vpn = [IO.File]::ReadAllLines((Join-Path $root 'lists\vpn.txt')) | Where-Object { $_ -match '^0\.0\.0\.0 \S+$' }
+  if ($vpn.Count -gt $budget) {
+    $reg = [Collections.Generic.HashSet[string]]::new()
+    foreach ($l in $vpn) { $p = ($l -split ' ')[1] -split '\.'; $n = $p.Count
+      $d = if ($n -ge 3 -and $p[$n-2] -in @('co','com','net','org','gov','ac') -and $p[$n-1].Length -eq 2) { $p[($n-3)..($n-1)] -join '.' } else { $p[($n-2)..($n-1)] -join '.' }
+      [void]$reg.Add('0.0.0.0 ' + $d) }
+    $vpn = @($reg)
+  }
+  if ($vpn.Count -le $budget) {
+    [IO.File]::WriteAllLines((Join-Path $Share 'vpn.txt'), [string[]]$vpn)
+    Set-Content (Join-Path $Share 'vpn-block') '1'
+    Write-Host "    VPN/proxy bypass blocking on ($($vpn.Count) domains)."
+  } else {
+    Write-Host "    VPN list skipped on Windows: it would exceed the hosts-file size this DNS client tolerates." -ForegroundColor Yellow
+  }
+}
+if ($LockDays -gt 0) {
+  $until = [int][double]::Parse((Get-Date -UFormat %s)) + $LockDays*86400
+  Set-Content (Join-Path $Share 'locked-until') $until
+  Write-Host "    Locked for $LockDays days: uninstall will refuse before $((Get-Date).AddDays($LockDays).ToString('yyyy-MM-dd'))."
 }
 
 if ($Partner) {
@@ -86,5 +113,8 @@ schtasks.exe /Run /TN 'gamble-guard' | Out-Null
 
 Write-Host ''
 Write-Host "Done. $($set.Count) domains blocked across Chrome, Edge, Firefox and Brave."
-Write-Host 'Two scheduled tasks re-apply it every 2 minutes and restore each other if deleted.'
+Write-Host 'Two scheduled tasks re-apply it every 2 minutes, restore each other, and refresh the list weekly.'
+Write-Host 'System DNS now goes through Mullvad family (existing filtering servers kept in front).'
+Write-Host 'Permanent: there is no uninstall.'
 Write-Host 'Verify:  Resolve-DnsName bet365.com'
+Start-Process 'https://prime-server.github.io/gamble-guard/' -EA SilentlyContinue

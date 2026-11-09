@@ -5,6 +5,7 @@ cd "$(dirname "$0")/.."
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
 fail=0
 chk(){ [ "$2" = "$3" ] && echo "  ok   $1" || { echo "  FAIL $1 (got $2, want $3)"; fail=1; }; }
+export ALLOW="$T/no-allow"   # a real install's allow.txt must not leak into these runs
 
 printf '127.0.0.1\tlocalhost\n10.0.0.5\tmy-nas\n' > "$T/hosts"
 printf '0.0.0.0 bet365.com\n0.0.0.0 stake.com\n' > "$T/list"
@@ -39,18 +40,21 @@ PATH="$T/bin:$PATH" LIST="$T/list" HOSTS="$T/hosts" SKIP_BROWSERS=1 SKIP_REFRESH
 chk "dns: sets the unconfigured service" "$(grep -cx 'USB LAN 194.242.2.6 2a07:e340::6' "$T/set.log")" 1
 chk "dns: skips set/disabled/Tailscale/Thunderbolt" "$(wc -l < "$T/set.log" | tr -d ' ')" 1
 
-# --- cooling-off gate -----------------------------------------------------
+# --- permanent: --status and the removal gate -------------------------------
 T2=$(mktemp -d); trap 'rm -rf "$T" "$T2"' EXIT
 out=$(SHARE="$T2" ./uninstall.sh --status)
-chk "status: nothing requested" "$(echo "$out" | grep -c 'No removal requested')" 1
-printf '%s\n' "$(date +%s)" > "$T2/unlock.request"
+chk "status: permanent"          "$(echo "$out" | grep -c '^Permanent')" 1
+chk "status: partner not set"    "$(echo "$out" | grep -c '^Partner passphrase: not set$')" 1
+chk "status: lock forever"       "$(echo "$out" | grep -c '^Lock: forever$')" 1
+# look like root: with no lock and no partner the gate must refuse before touching anything
+mkdir -p "$T2/bin"; printf '#!/bin/bash\necho 0\n' > "$T2/bin/id"; chmod +x "$T2/bin/id"
+out=$(PATH="$T2/bin:$PATH" SHARE="$T2" ./uninstall.sh 2>&1) && rc=0 || rc=$?
+chk "gate: no uninstall"         "$out" "gamble-guard has no uninstall. It is permanent by design."
+chk "gate: exit 1"               "$rc" 1
+UNTIL=$(( $(date +%s) + 30*86400 )); echo deadbeef > "$T2/partner.sha256"; printf '%s\n' "$UNTIL" > "$T2/locked-until"
 out=$(SHARE="$T2" ./uninstall.sh --status)
-chk "status: wait reported"     "$(echo "$out" | grep -c 'left')" 1
-printf '%s\n' "$(( $(date +%s) - 8*86400 ))" > "$T2/unlock.request"
-out=$(SHARE="$T2" ./uninstall.sh --status)
-chk "status: wait elapsed"      "$(echo "$out" | grep -c 'complete')" 1
-out=$(SHARE="$T2" DELAY_DAYS=30 ./uninstall.sh --status)
-chk "status: honours DELAY_DAYS" "$(echo "$out" | grep -c 'left')" 1
+chk "status: partner set"        "$(echo "$out" | grep -c '^Partner passphrase: set$')" 1
+chk "status: lock date"          "$(echo "$out" | grep -c "^Lock: until $(date -r "$UNTIL" '+%Y-%m-%d')$")" 1
 
 
 # --- weekly refresh gate --------------------------------------------------
@@ -101,23 +105,29 @@ chk "resolver: replaces non-filtering server"   "$(grep -c '^Guest 194.242.2.6 2
 chk "resolver: sets unset service"              "$(grep -c '^USB LAN 194.242.2.6 2a07:e340::6$' "$T4/log")" 1
 chk "resolver: Tailscale never touched"         "$(grep -c '^Tailscale' "$T4/log")" 0
 
-# --- lock period ------------------------------------------------------------
+# --- VPN list: the install-time flag file is what turns it on ----------------
 T5=$(mktemp -d); trap 'rm -rf "$T" "$T2" "$T3" "$T4" "$T5"' EXIT
-printf '%s\n' "$(( $(date +%s) + 30*86400 ))" > "$T5/locked-until"
-out=$(SHARE="$T5" ./uninstall.sh --status)
-chk "lock: status reports lock"   "$(echo "$out" | grep -c '^Locked')" 1
-chk "lock: ~30 days remaining"    "$(echo "$out" | grep -cE 'for (29|30) more days')" 1
-printf '%s\n' "$(( $(date +%s) - 10 ))" > "$T5/locked-until"
-out=$(SHARE="$T5" ./uninstall.sh --status)
-chk "lock: expired lock is silent" "$(echo "$out" | grep -c '^Locked')" 0
-
-# --- optional VPN list -------------------------------------------------------
-T6=$(mktemp -d); trap 'rm -rf "$T" "$T2" "$T3" "$T4" "$T5" "$T6"' EXIT
-printf '127.0.0.1\tlocalhost\n' > "$T6/hosts"; printf '0.0.0.0 bet365.com\n' > "$T6/list"; printf '0.0.0.0 nordvpn.com\n' > "$T6/vpn"
-v(){ LIST="$T6/list" HOSTS="$T6/hosts" VPN_LIST="$T6/vpn" VPN_FLAG="$T6/flag" SKIP_BROWSERS=1 SKIP_DNS=1 SKIP_REFRESH=1 ./src/gambleguard; }
+printf '127.0.0.1\tlocalhost\n' > "$T5/hosts"; printf '0.0.0.0 bet365.com\n' > "$T5/list"; printf '0.0.0.0 nordvpn.com\n' > "$T5/vpn"
+v(){ LIST="$T5/list" HOSTS="$T5/hosts" VPN_LIST="$T5/vpn" VPN_FLAG="$T5/flag" SKIP_BROWSERS=1 SKIP_DNS=1 SKIP_REFRESH=1 ./src/gambleguard; }
 v
-chk "vpn: off by default"          "$(grep -c 'nordvpn' "$T6/hosts")" 0
-touch "$T6/flag"; v
-chk "vpn: appended when enabled"   "$(grep -c '^0.0.0.0 nordvpn.com$' "$T6/hosts")" 1
-chk "vpn: gambling list still there" "$(grep -c '^0.0.0.0 bet365.com$' "$T6/hosts")" 1
+chk "vpn: not appended without flag" "$(grep -c 'nordvpn' "$T5/hosts")" 0
+touch "$T5/flag"; v
+chk "vpn: appended when enabled"     "$(grep -c '^0.0.0.0 nordvpn.com$' "$T5/hosts")" 1
+chk "vpn: gambling list still there" "$(grep -c '^0.0.0.0 bet365.com$' "$T5/hosts")" 1
+
+# --- allow.txt: a false positive is unblocked, nothing else ------------------
+T6=$(mktemp -d); trap 'rm -rf "$T" "$T2" "$T3" "$T4" "$T5" "$T6"' EXIT
+printf '127.0.0.1\tlocalhost\n' > "$T6/hosts"
+printf '0.0.0.0 bet365.com\n0.0.0.0 work.example\n0.0.0.0 sub.work.example\n' > "$T6/list"
+printf '0.0.0.0 vpn.corp.example\n' > "$T6/vpn"; touch "$T6/flag"
+printf '# our tools, false positives\r\n  Work.Example  \n\nvpn.corp.example # the office VPN\n' > "$T6/allow"
+a(){ LIST="$T6/list" HOSTS="$T6/hosts" VPN_LIST="$T6/vpn" VPN_FLAG="$T6/flag" ALLOW="$1" SKIP_BROWSERS=1 SKIP_DNS=1 SKIP_REFRESH=1 ./src/gambleguard; }
+a "$T6/missing"
+chk "allow: missing file, everything blocked" "$(grep -c '^0.0.0.0 ' "$T6/hosts")" 4
+a "$T6/allow"
+chk "allow: listed domain dropped"            "$(grep -c '^0.0.0.0 work.example$' "$T6/hosts")" 0
+chk "allow: listed vpn domain dropped"        "$(grep -c 'vpn.corp.example' "$T6/hosts")" 0
+chk "allow: subdomain still blocked"          "$(grep -c '^0.0.0.0 sub.work.example$' "$T6/hosts")" 1
+chk "allow: gambling still blocked"           "$(grep -c '^0.0.0.0 bet365.com$' "$T6/hosts")" 1
+chk "allow: nothing else dropped"             "$(grep -c '^0.0.0.0 ' "$T6/hosts")" 2
 exit $fail

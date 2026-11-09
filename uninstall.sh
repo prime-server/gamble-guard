@@ -1,46 +1,32 @@
 #!/bin/bash
-# Removes gamble-guard - but not on impulse.
+# Removes gamble-guard. By default it cannot: the blocker is permanent.
 #
-# Removal is gated two ways:
-#   * if an accountability partner set a passphrase at install, it is required;
-#   * otherwise removal must be REQUESTED, then confirmed after a cooling-off
-#     period (default 7 days). The first run starts the clock and exits.
+# Removal happens only if one of these applies:
+#   * a finite lock was chosen at install (LOCK_DAYS=N) and its date has passed;
+#   * an accountability partner set a passphrase at install (PARTNER=1) and types it.
 #
-#   sudo ./uninstall.sh           request removal, or complete it if the wait is up
-#   sudo ./uninstall.sh --status  how long is left
+#   sudo ./uninstall.sh           remove, if one of the above applies
+#   ./uninstall.sh --status       which applies (needs no root)
 set -euo pipefail
 
 SHARE="${SHARE:-/usr/local/share/gambleguard}"
-REQ="$SHARE/unlock.request"
 PARTNER="$SHARE/partner.sha256"
-DELAY_DAYS="${DELAY_DAYS:-7}"
-DELAY=$(( DELAY_DAYS * 86400 ))
-NOW=$(date +%s)
-
 LOCK="$SHARE/locked-until"
-lock_left(){ [ -f "$LOCK" ] && echo $(( $(cat "$LOCK") - NOW )) || echo 0; }
+NOW=$(date +%s)
+lock_date(){ date -r "$(cat "$LOCK")" '+%Y-%m-%d'; }
+
 status() {
-  if [ "$(lock_left)" -gt 0 ]; then
-    echo "Locked: no removal possible for $(( $(lock_left) / 86400 )) more days (until $(date -r "$(cat "$LOCK")" '+%Y-%m-%d'))."
-  fi
-  if [ -f "$REQ" ]; then
-    LEFT=$(( $(cat "$REQ") + DELAY - NOW ))
-    [ "$LEFT" -le 0 ] && echo "Cooling-off complete. Re-run to remove." \
-      || echo "Removal requested. $(( LEFT / 3600 ))h $(( (LEFT % 3600) / 60 ))m left."
-  else
-    echo "No removal requested. gamble-guard is active."
-  fi
+  echo "Permanent: there is no uninstall."
+  [ -f "$PARTNER" ] && echo "Partner passphrase: set" || echo "Partner passphrase: not set"
+  [ -f "$LOCK" ] && echo "Lock: until $(lock_date)" || echo "Lock: forever"
 }
 [ "${1:-}" = "--status" ] && { status; exit 0; }   # read-only, needs no root
 
 [ "$(id -u)" = 0 ] || { echo "Run with sudo: sudo ./uninstall.sh"; exit 1; }
 
-# a lock period beats the cooling-off; only a partner passphrase can shorten it
-if [ "$(lock_left)" -gt 0 ] && [ ! -f "$PARTNER" ]; then
-  echo "Locked until $(date -r "$(cat "$LOCK")" '+%Y-%m-%d'). You chose this. Nothing here can shorten it." >&2
-  exit 1
-fi
-if [ -f "$PARTNER" ]; then
+if [ -f "$LOCK" ] && [ "$(cat "$LOCK")" -le "$NOW" ]; then
+  echo "Lock ended $(lock_date)."
+elif [ -f "$PARTNER" ]; then
   printf "Accountability passphrase: " >&2
   read -rs PASS; echo >&2
   GOT=$(printf '%s' "$PASS" | shasum -a 256 | awk '{print $1}')
@@ -49,22 +35,9 @@ if [ -f "$PARTNER" ]; then
   fi
   echo "Passphrase accepted."
 else
-  if [ ! -f "$REQ" ]; then
-    chflags noschg "$SHARE" 2>/dev/null || true
-    printf '%s\n' "$NOW" > "$REQ"
-    echo
-    echo "Removal requested. gamble-guard keeps working for $DELAY_DAYS days."
-    echo "Re-run this after that to finish. Check progress: sudo ./uninstall.sh --status"
-    echo
-    echo "If this is a craving rather than a decision, it will pass. $DELAY_DAYS days from"
-    echo "now you can do this calmly - or find you no longer want to."
-    exit 0
-  fi
-  LEFT=$(( $(cat "$REQ") + DELAY - NOW ))
-  if [ "$LEFT" -gt 0 ]; then
-    echo "Still cooling off: $(( LEFT / 3600 ))h $(( (LEFT % 3600) / 60 ))m left." >&2
-    exit 1
-  fi
+  echo "gamble-guard has no uninstall. It is permanent by design."
+  [ -f "$LOCK" ] && echo "Your lock ends $(lock_date)."
+  exit 1
 fi
 
 MARK_A="# >>> gamble-guard >>>"

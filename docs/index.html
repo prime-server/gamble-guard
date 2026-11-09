@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>gamble-guard</title>
+<meta name="description" content="Gamble Guard is installed. Gambling sites do not load on this device.">
+<link rel="icon" href="img/logo.png">
+<style>
+:root{--paper:#fbf7ee;--ink:#1f2a44;--ink2:#4a5368;--line:#d8d0bd;--amber:#e3a33a;--amber-lt:#f6d78a;--amber-bg:#fbefd3;--amber-ink:#7a4e06;--green:#4f9a6a;--green-bg:#e6f2ea;--green-ink:#2f6b47;--hand:'Bradley Hand','Segoe Print','Comic Sans MS','Marker Felt',cursive,sans-serif;--sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;--mono:ui-monospace,Menlo,Consolas,monospace}
+*{box-sizing:border-box}
+html,body{background:var(--paper)}
+body{margin:0;padding:28px 16px 40px;font:18px/1.55 var(--sans);color:var(--ink)}
+main{max-width:640px;margin:0 auto}
+:focus-visible{outline:3px solid var(--amber);outline-offset:3px}
+a{color:var(--ink);text-decoration-thickness:2px;text-decoration-color:var(--amber);text-underline-offset:3px}
+.hero{text-align:center}
+.logo{display:block;width:min(100%,420px);height:auto;aspect-ratio:3/1;object-fit:cover;margin:0 auto;border:3px solid var(--ink);border-radius:20px;background:#f3f4f6}
+h1{font:700 clamp(32px,8vw,54px)/1.15 var(--hand);margin:26px 0 4px}
+.squiggle{display:block;width:min(70%,360px);height:auto;margin:0 auto 28px}
+.check{border:3px solid var(--ink);border-radius:22px;background:#fff;padding:22px 20px;box-shadow:5px 6px 0 var(--line)}
+.check.ok{background:var(--green-bg);border-color:var(--green);color:var(--green-ink)}
+.check.warn{background:var(--amber-bg);border-color:var(--amber)}
+.check .big{font:700 clamp(24px,5.6vw,32px)/1.25 var(--hand);margin:0}
+.check.warn .big{color:var(--amber-ink)}
+.state{display:grid;grid-template-columns:56px 1fr;column-gap:16px;row-gap:12px;align-items:center}
+.state[hidden]{display:none}
+.ico{width:56px;height:56px}
+.state>.big{grid-column:2}
+.state>.more,.state.noico>*{grid-column:1/-1}
+.check p{margin:10px 0 0}
+.steps h3{font:700 22px/1.2 var(--hand);margin:22px 0 6px}
+.steps ol{margin:0;padding-left:22px}
+.steps li{margin:8px 0}
+.cmd{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 4px}
+.cmd code{flex:1 1 220px;font:15px/1.45 var(--mono);background:#fff;border:2px solid var(--line);border-radius:10px;padding:10px 12px;overflow-wrap:anywhere;color:var(--ink)}
+.copy{font:600 16px var(--sans);color:#fff;background:var(--ink);border:0;border-radius:10px;padding:10px 16px;min-height:44px;cursor:pointer}
+.copy:hover{background:#34436a}
+.spin{display:inline-block;width:.75em;height:.75em;border:3px solid var(--line);border-top-color:var(--amber);border-radius:50%;animation:spin .9s linear infinite;vertical-align:-.08em;margin-right:.45em}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+h2{font:700 clamp(24px,6vw,30px)/1.2 var(--hand);margin:44px 0 12px}
+.layers{list-style:none;margin:0;padding:0;counter-reset:n}
+.layers li{counter-increment:n;position:relative;padding-left:48px;margin:14px 0}
+.layers li::before{content:counter(n);position:absolute;left:0;top:-1px;width:34px;height:34px;border-radius:50%;background:var(--amber-lt);border:2.5px solid var(--ink);font:700 19px/30px var(--hand);text-align:center}
+.todo{margin:0;padding-left:22px}
+.todo li{margin:8px 0}
+code{font:.92em var(--mono)}
+footer{margin-top:44px;padding-top:20px;border-top:2px dashed var(--line);text-align:center;color:var(--ink2);font-size:16px}
+footer p{margin:8px 0 0}
+</style>
+</head>
+<body>
+<svg aria-hidden="true" focusable="false" width="0" height="0" style="position:absolute"><defs><filter id="wob" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="2" seed="7" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="3" xChannelSelector="R" yChannelSelector="G"/></filter></defs></svg>
+<main>
+<header class="hero">
+<img class="logo" src="img/logo.png" width="512" height="512" alt="Gamble Guard">
+<h1>Congratulations, you will never gamble again.</h1>
+<svg class="squiggle" viewBox="0 0 360 18" aria-hidden="true" focusable="false"><path filter="url(#wob)" d="M4 10 C 70 15 130 4 190 10 S 300 6 356 10" fill="none" stroke="#e3a33a" stroke-width="5" stroke-linecap="round"/></svg>
+</header>
+
+<section id="check" class="check" role="status" aria-live="polite">
+<div class="state noico" id="s-checking"><p class="big"><span class="spin" aria-hidden="true"></span>Checking this device…</p></div>
+
+<div class="state" id="s-protected" hidden>
+<svg class="ico" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path filter="url(#wob)" d="M32 4 L56 13 C57 36 50 49 32 60 C14 49 7 36 8 13 Z" fill="#f6d78a" stroke="#1f2a44" stroke-width="3.5" stroke-linejoin="round"/><path filter="url(#wob)" d="M20 32 L29 41 L45 22" fill="none" stroke="#2f6b47" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<p class="big">Protected. Gambling sites do not load on this device.</p>
+</div>
+
+<div class="state" id="s-open" hidden>
+<svg class="ico" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><circle filter="url(#wob)" cx="32" cy="32" r="26" fill="#f6d78a" stroke="#1f2a44" stroke-width="3.5"/><path d="M32 17 V37" stroke="#1f2a44" stroke-width="5" stroke-linecap="round"/><circle cx="32" cy="47" r="3.5" fill="#1f2a44"/></svg>
+<p class="big">Not protected on this device yet</p>
+<div class="more">
+<p>Gambling sites still load here. Install it now.</p>
+
+<div class="steps" data-os="ios" hidden>
+<h3>iPhone or iPad</h3>
+<ol>
+<li><a href="https://github.com/prime-server/gamble-guard/raw/main/mobile/gamble-guard.mobileconfig">Download the profile</a>, then open Settings → Profile Downloaded → Install.</li>
+<li>Turn iCloud Private Relay off: Settings → your name → iCloud → Private Relay. Safari then uses the filter.</li>
+</ol>
+</div>
+
+<div class="steps" data-os="android" hidden>
+<h3>Android</h3>
+<ol>
+<li>Settings → Network &amp; internet → Private DNS → Private DNS provider hostname → <code>family.dns.mullvad.net</code> → Save.</li>
+</ol>
+</div>
+
+<div class="steps" data-os="mac" hidden>
+<h3>Mac</h3>
+<ol>
+<li>Open Terminal (press ⌘ Space and type Terminal), paste this and press Return. It asks for your password.
+<div class="cmd"><code>curl -fsSL https://raw.githubusercontent.com/prime-server/gamble-guard/main/install.sh | sudo bash</code><button type="button" class="copy">Copy command</button></div></li>
+<li>Turn iCloud Private Relay off: System Settings → Apple Account → iCloud → Private Relay. Safari then uses the filter.</li>
+</ol>
+</div>
+
+<div class="steps" data-os="windows" hidden>
+<h3>Windows</h3>
+<ol>
+<li>Right-click Start → Terminal (Admin), paste this and press Enter.
+<div class="cmd"><code>irm https://raw.githubusercontent.com/prime-server/gamble-guard/main/win/install.ps1 | iex</code><button type="button" class="copy">Copy command</button></div></li>
+</ol>
+</div>
+</div>
+</div>
+
+<div class="state noico" id="s-offline" hidden><p class="big">Could not check: this device looks offline.</p><p>Reconnect and reload this page.</p></div>
+<noscript><p>Turn on JavaScript to check this device, or try opening bet365.com: it should not load.</p></noscript>
+</section>
+
+<h2>What is now true</h2>
+<ol class="layers">
+<li><b>Filtering DNS.</b> Every lookup from this device goes to a resolver that refuses gambling domains.</li>
+<li><b>Hosts block.</b> Every gambling domain on the list points at 0.0.0.0, in every app and every browser. The list refreshes itself weekly.</li>
+<li><b>Browsers locked.</b> Chrome, Edge, Brave and Firefox are pinned to the system resolver, so they cannot look up a gambling site on their own.</li>
+<li><b>Two watchdogs.</b> Two services re-apply all of this every two minutes and put each other back if one is removed.</li>
+<li><b>No uninstall.</b> There is no command to remove it. It stays.</li>
+</ol>
+
+<h2>Two things to do now</h2>
+<ul class="todo">
+<li>On a Mac, iPhone or iPad, turn iCloud Private Relay off (Settings → Apple Account → iCloud → Private Relay) so Safari uses the filter.</li>
+<li>To make removal impossible even for yourself, run <code>sudo ./harden.sh</code> from the repo folder.</li>
+</ul>
+
+<footer>
+<a href="https://github.com/prime-server/gamble-guard">github.com/prime-server/gamble-guard</a>
+<p>Canada 1-866-531-2600 · US 1-800-522-4700 · UK 0808 8020 133 · <a href="https://www.gamblingtherapy.org">gamblingtherapy.org</a></p>
+</footer>
+</main>
+
+<script>
+(() => {
+  // A blocked domain fails at DNS/connect, so fetch rejects; an open one resolves (opaque response, even on 404).
+  const SITES = ['https://bet365.com/', 'https://stake.com/', 'https://roobet.com/', 'https://draftkings.com/', 'https://betway.com/'];
+  const check = document.getElementById('check');
+  const show = (id, cls) => {
+    check.className = 'check ' + (cls || '');
+    for (const el of check.querySelectorAll('.state')) el.hidden = el.id !== id;
+  };
+  const probe = url => {
+    const c = new AbortController(), t = setTimeout(() => c.abort(), 8000);
+    return fetch(url, {mode: 'no-cors', cache: 'no-store', signal: c.signal})
+      .then(() => true, () => false).finally(() => clearTimeout(t));
+  };
+  const showSteps = () => {
+    const ua = navigator.userAgent;
+    const ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const os = ios ? 'ios' : /Android/.test(ua) ? 'android' : /Windows/.test(ua) ? 'windows' : /Mac/.test(ua) ? 'mac' : '';
+    for (const el of document.querySelectorAll('.steps')) el.hidden = !!os && el.dataset.os !== os;
+  };
+  // github.com is the control: if it fails too, the device is offline rather than protected.
+  Promise.all([probe('https://github.com/'), ...SITES.map(probe)]).then(([online, ...r]) => {
+    if (r.some(Boolean)) { showSteps(); show('s-open', 'warn'); }
+    else show(online ? 's-protected' : 's-offline', online ? 'ok' : '');
+  });
+  for (const btn of document.querySelectorAll('.copy')) btn.addEventListener('click', async () => {
+    const code = btn.previousElementSibling;
+    try { await navigator.clipboard.writeText(code.textContent); btn.textContent = 'Copied'; }
+    catch (e) { getSelection().selectAllChildren(code); btn.textContent = 'Press Ctrl+C or ⌘C'; }
+    setTimeout(() => { btn.textContent = 'Copy command'; }, 2500);
+  });
+})();
+</script>
+</body>
+</html>

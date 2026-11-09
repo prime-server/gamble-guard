@@ -1,11 +1,126 @@
 # Gambling brands that get a compact hosts entry on Windows (which cannot take the full list)
-# and TLD-mirror expansion everywhere. One token per line; matched as a domain-label prefix.
-bet365 betway 888casino 888sport 888poker williamhill draftkings fanduel pokerstars betmgm
-caesars bwin unibet ladbrokes paddypower betfair pinnacle bovada betonline mybookie ignitioncasino
-bodog sportsinteraction betrivers pointsbet thescore proline playnow espacejeux lotoquebec olg bclc
-wclc playalberta ggpoker partypoker betano betsson leovegas mrgreen casumo jackpotcity spincasino
-rubyfortune royalvegas luckynugget bet99 tonybet betvictor coral skybet sportingbet 10bet 22bet
-1xbet melbet betwinner parimatch mostbet pin-up vulkan stake roobet rainbet rollbit duelbits gamdom
-betfury bitcasino cloudbet sportsbet thunderpick jackbit metaspins trustdice primedice nanogames
-csgoempire csgoroll hypedrop keydrop key-drop datdrop rustclash bitstarz mystake bcgame betplay winna
-bitsler fortunejack 1xbit cryptoleo wildcasino luckydice coinpoker betchain mbitcasino sportbet
+# and TLD-mirror expansion everywhere (brand.com, www.brand.com, m.brand.com, brand.io, ...).
+# Tokens are space- or newline-separated. A host counts only when its first label IS the token
+# (or token-NNN / token-xx), so every token must be a distinctive gambling brand name: never a
+# common word or a real non-gambling brand. "sky", "coral", "admiral", "toto", "tab", "chance"
+# would create or block sky.com, coral.com, admiral.com... Those brands go in
+# tools/extra-exact.txt as exact domains instead (skybet.com, coral.co.uk, toto.nl, tab.com.au).
+
+# Global operators licensed in many of the regions below
+bet365 betway 888casino 888sport 888poker williamhill pokerstars betmgm bwin unibet ladbrokes
+paddypower betfair pinnacle betvictor betsson leovegas mrgreen casumo sportingbet 10bet ggpoker
+partypoker partycasino lottoland tonybet
+
+# Canada: provincial lotteries and licensed books
+sportsinteraction proline playnow espacejeux lotoquebec olg playolg bclc wclc playalberta bet99
+northstarbets betregal jackpotcity spincasino rubyfortune royalvegas luckynugget zodiaccasino
+captaincookscasino yukongoldcasino grandmondial royalpanda playojo jackpotjoy
+
+# US: regulated books, DFS, sweepstakes casinos, prediction markets, offshore books
+draftkings fanduel caesars betrivers pointsbet thescore espnbet hardrockbet ballybet betparx
+borgataonline wynnbet resortscasino goldennuggetcasino tropicanacasino circasports
+prizepicks underdogfantasy parlayplay boomfantasy vividpicks splashsports fliff rebet novig
+sporttrade prophetx kalshi polymarket predictit
+chumba chumbacasino luckyland luckylandslots pulsz wowvegas mcluck crowncoins crowncoinscasino
+fortunecoins sportzino realprize funrize jackpota legendz high5casino zulacasino modocasino
+dingdingding sweepslots globalpoker
+bovada ignitioncasino bodog betonline mybookie betus xbet everygame sportsbetting heritagesports
+betanysports jazzsports wagerweb youwager lowvig betdsi gtbets betnow nitrobetting cafecasino
+luckycreek ragingbullslots elroyale reddogcasino lasatlantis superslots shazamcasino slotsofvegas
+planet7casino silveroakcasino captainjackcasino royalacecasino duckyluck slotocash uptownaces
+fairgocasino redstagcasino miamiclubcasino blacklotuscasino roaring21 libertyslots lincolncasino
+bovegas jackpotcapital ozwin aussieplay brango slotland cryptoslots
+
+# Latin America and Caribbean
+betano estrelabet betnacional pixbet superbet betmotion novibet f12bet esportesdasorte vaidebet
+betsul rivalo bet7k betpix365 luvabet apostaganha betdasorte casadeapostas betboo mcgames
+brazino777 pagbet betwarrior galerabet vbet betcris playdoit ganabet strendus apuestatotal
+doradobet inkabet teapuesto wplay rushbet yajuego jugabet latamwin juegalo bplay ecuabet
+meridianbet 20bet ivibet bizzo bizzocasino nationalcasino betchan casinonic casinochan ninecasino
+luckydreams islandluck supremeventures
+
+# UK and Ireland
+skybet skyvegas skycasino skybingo skypoker betfred boylesports grosvenorcasinos gentingcasino
+virginbet virgingames galabingo galacasino meccabingo buzzbingo foxybingo sunbingo heartbingo
+monopolycasino rainbowrichescasino betuk betgoodwin quinnbet spreadex sportingindex betdaq
+smarkets livescorebet midnite kwiff 32red thelotter
+
+# France
+winamax betclic parionssport zebet netbet genybet feelingbet olybet barrierebet partouche
+cresuscasino madnix wildsultan lucky8
+
+# Germany and Austria
+tipico bet-at-home interwetten admiralbet merkurbets merkurslots xtip tipwin happybet neobet
+oddset win2day mybet wunderino sunmaker drueckglueck tipp3
+
+# Italy
+snai lottomatica eurobet goldbet betflag planetwin365 starcasino betaland stanleybet
+giocodigitale superenalotto
+
+# Spain and Portugal
+codere sportium retabet luckia marcaapuestas kirolbet casinogranmadrid casinobarcelona juegging
+yobingo botemania estorilsolcasinos casinoportugal lebull nossaaposta
+
+# Netherlands and Belgium
+hollandcasino kansino bingoal staatsloterij casino777 betfirst goldenpalace goldenvegas
+magicbetting scooore bet777 casinobelgium
+
+# Nordics
+svenskaspel snabbare expekt nordicbet betsafe casinostugan speedycasino speedybet ninjacasino
+videoslots mobilebet bethard betinia campobet danskespil bet25 spilnu tivolicasino norsk-tipping
+rikstoto veikkaus rizk wildz coolbet
+
+# Poland, Czechia, Slovakia, Hungary, Baltics
+lvbet totolotek betfan etoto forbet tipsport ifortuna efortuna sazka synottip merkurxtip sazkabet
+doxxbet monacobet szerencsejatek tippmixpro tippmix optibet 7bet
+
+# Romania
+publicwin princesscasino winmasters maxbet casapariurilor mozzartbet winbet excelbet vladcazino
+magicjackpot sevencasino getsbet favbet conquestador
+
+# Balkans, Greece, Turkey, Bulgaria
+opap pamestoixima stoiximan iddaa nesine misli bilyoner tuttur oley birebin millipiyango youwin
+superbahis mobilbahis bets10 tipobet jojobet casinometropol rexbet betpas restbet casinomaxi
+bahsegel sekabet betebet matbet mariobet holiganbet grandpashabet sahabet onwin betturkey
+vdcasino imajbet perabet casibom kralbet betpark marsbahis bahiscom tempobet hovarda meritking
+lunabet efbet palmsbet inbet alphawin mozzart soccerbet balkanbet admiralyes arenacasino
+
+# Russia, Ukraine, Belarus, Kazakhstan (1xbet is in extra-exact.txt: its 14k upstream mirror
+# domains alone would fill a third of the Windows compact budget if it were a token here)
+melbet mostbet pin-up pinup vulkan 22bet parimatch fonbet winline betcity ggbet olimpbet
+marathonbet 1win 4rabet linebet betwinner leonbet betboom ligastavok tennisi zenitbet baltbet
+bettery 1xstavka vulkanbet vulkanvegas vulkanplatinum vulkanstars vulkan24 clubvulkan casino-x
+joycasino azino777 azino playfortuna pokerdom riobet booi solcasino jetcasino roxcasino
+freshcasino izzicasino dripcasino monrocasino stardacasino legzo daddycasino kentcasino gizbo
+vavada betera cosmolot slotoking firstcasino 888starz
+
+# Malta and Curacao offshore, crypto casinos, skin gambling
+stake roobet rainbet rollbit duelbits gamdom betfury bitcasino cloudbet thunderpick jackbit
+metaspins trustdice primedice nanogames csgoempire csgoroll hypedrop keydrop key-drop datdrop
+rustclash bitstarz mystake bcgame betplay winna bitsler fortunejack 1xbit cryptoleo wildcasino
+luckydice coinpoker betchain mbitcasino sportbet 500casino csgo500 wolfbet luckyblock megadice
+tgcasino wsmcasino betpanda coinsgame vave coinplay fairspin 7bitcasino boomerangcasino n1casino
+n1bet banditcamp skinclub hellcase farmskins rustbet bloxflip winz kingbilly playamo bobcasino
+wazamba nomini rabona cadabrus spinfever rocketplay neospin skycrown rickycasino levelupcasino
+joefortune wolfwinner woocasino spinsamurai hellspin slottica casinoin spinia zetcasino jackpoty
+neon54 1red casombie tsars icecasino verdecasino hitnspin spinbetter casinia amunra legiano rtbet
+
+# Australia and New Zealand
+sportsbet betr bluebet picklebet playup palmerbet betdeluxe winnersbet boombet elitebet thelott
+lotterywest tabtouch skycity christchurchcasino
+
+# Asia-facing
+dream11 my11circle fun88 w88 m88 188bet dafabet 12bet rummycircle jungleerummy adda52 pokerbaazi
+zupee winzo gamezy howzat ballebaazi fantasyakhada rummyculture lotus365 lotusbook skyexchange
+skyexch mahadevbook 10cric rajbet jeetwin crickex babu88 jeetbuzz marvelbet megacasinoworld
+mcwcasino sbobet ibcbet cmd368 bk8 me88 joker123 mega888 918kiss live22 xe88 okbet bingoplus
+arenaplus lodibet phlwin jilibet jiliko casinoplus fb88 vn88 kubet kucasino 789bet jun88 new88
+shbet hi88 go88 sunwin rikvip ufabet sagame lsm99 betflix pgslot slotxo ambbet superslot huay
+slot88 idnpoker idnplay verajohn casitabi mystino youscasino konibet bonscasino eldoah
+wondercasino beebet yuugado casinosecret yabo hg0088 kaiyun dafa888 yyycasino betfinal emirbet
+betobet casinodays
+
+# Africa
+bet9ja sportybet betking betpawa hollywoodbets supabets msport nairabet betbonanza accessbet
+merrybet surebet247 betlion betika odibets sportpesa betin shabiki premierbet sunbet lottostar
+gbets playabets worldsportsbetting betxchange yesplay

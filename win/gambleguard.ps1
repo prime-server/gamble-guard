@@ -1,11 +1,30 @@
 # gambleguard.ps1 - re-applies the gambling block and the browser DNS policies.
 # A scheduled task runs this as SYSTEM every 2 minutes; that is what makes it self-healing.
 $ErrorActionPreference = 'SilentlyContinue'
+# never overlap: a slow run plus a 2-minute trigger otherwise piles up processes until the
+# machine crawls (seen: 384 stuck PowerShell instances)
+$mutex = New-Object Threading.Mutex($false, 'Global\gamble-guard')
+if (-not $mutex.WaitOne(0)) { exit 0 }
 $MarkA = '# >>> gamble-guard >>>'
 $MarkB = '# <<< gamble-guard <<<'
 $Share = 'C:\ProgramData\gamble-guard'
 $List  = Join-Path $Share 'blocklist.txt'
 $Hosts = Join-Path $env:SystemRoot 'System32\drivers\etc\hosts'
+
+# --- 0. weekly list refresh ---------------------------------------------------
+# A GitHub Action rebuilds lists/ every Monday from four upstream blocklists. Windows gets
+# the compact list: its DNS client stalls above ~50k hosts lines (measured: >25 s/lookup).
+$Stamp = Join-Path $Share '.refreshed'
+if (-not (Test-Path $Stamp) -or (Get-Item $Stamp).LastWriteTime -lt (Get-Date).AddDays(-6)) {
+  try {
+    $tmp = Join-Path $env:TEMP 'gg-list.txt'
+    Invoke-WebRequest -UseBasicParsing -TimeoutSec 120 -OutFile $tmp `
+      -Uri 'https://raw.githubusercontent.com/prime-server/gamble-guard/main/lists/compact.txt'
+    $n = ([IO.File]::ReadAllLines($tmp) | Where-Object { $_ -match '^0\.0\.0\.0 ' }).Count
+    if ($n -ge 5000 -and $n -le 60000) { Copy-Item $tmp $List -Force; Set-Content $Stamp (Get-Date) }   # size gate: never a broken or oversized list
+    Remove-Item $tmp -Force
+  } catch {}
+}
 
 # --- 1. the hosts block ---------------------------------------------------
 if (Test-Path $List) {
@@ -19,13 +38,49 @@ if (Test-Path $List) {
   }
   $new = New-Object Collections.Generic.List[string]
   $new.AddRange($keep); $new.Add($MarkA)
-  $new.AddRange([string[]][IO.File]::ReadAllLines($List)); $new.Add($MarkB)
+  # allow.txt: a false positive (a work site) is unblocked here, one exact domain per line
+  $allow = @{}; $af = Join-Path $Share 'allow.txt'
+  if (Test-Path $af) { foreach ($d in Get-Content $af) { $d=$d.Trim().ToLower(); if ($d -and -not $d.StartsWith('#')) { $allow[$d]=1 } } }
+  $block = [IO.File]::ReadAllLines($List)
+  $vf = Join-Path $Share 'vpn.txt'; if ((Test-Path (Join-Path $Share 'vpn-block')) -and (Test-Path $vf)) { $block += [IO.File]::ReadAllLines($vf) }
+  foreach ($l in $block) { if ($l -match '^0\.0\.0\.0 (\S+)$' -and -not $allow.ContainsKey($Matches[1])) { $new.Add($l) } }
+  $new.Add($MarkB)
   $joined = ($new -join "`r`n") + "`r`n"
   $old = if (Test-Path $Hosts) { [IO.File]::ReadAllText($Hosts) } else { '' }
   if ($joined -ne $old) {
     attrib -R $Hosts 2>$null
     [IO.File]::WriteAllText($Hosts, $joined)
     ipconfig /flushdns | Out-Null
+  }
+}
+
+# --- 2. upstream filtering resolver --------------------------------------------
+# Mullvad's free family DNS refuses gambling domains; it covers everything the compact
+# hosts list cannot. Never replace a resolver that is already blocking: a lapsed blocker
+# often leaves working filter servers behind - probe them and keep them in front.
+$Mullvad = '194.242.2.6'
+function Test-Blocks($srv) {
+  try {
+    $g = Resolve-DnsName bet365.com -Server $srv -Type A -DnsOnly -QuickTimeout -EA Stop | Where-Object { $_.IPAddress }
+    $c = Resolve-DnsName github.com -Server $srv -Type A -DnsOnly -QuickTimeout -EA Stop | Where-Object { $_.IPAddress }
+    return ($c -and (-not $g -or $g[0].IPAddress -eq '0.0.0.0'))
+  } catch { return $false }   # a timeout on bet365 is ambiguous; treat as "does not provably block"
+}
+# a server that blocked once keeps its place without re-probing every 2 minutes
+$KeepFile = Join-Path $Share 'keep-dns.txt'
+$Keep = @(); if (Test-Path $KeepFile) { $Keep = Get-Content $KeepFile | Where-Object { $_ } }
+Get-NetAdapter | Where-Object { $_.Status -eq 'Up' -and $_.InterfaceDescription -notmatch 'Tailscale|Loopback|VPN|TAP|WireGuard' } | ForEach-Object {
+  $cur = @((Get-DnsClientServerAddress -InterfaceIndex $_.ifIndex -AddressFamily IPv4 -EA SilentlyContinue).ServerAddresses)
+  $front = @()
+  foreach ($ip in $cur) {
+    if ($ip -eq $Mullvad) { continue }
+    if ($Keep -contains $ip) { $front += $ip; continue }
+    if (Test-Blocks $ip) { $front += $ip; $Keep += $ip; Add-Content $KeepFile $ip }
+  }
+  # Mullvad over IPv6 too, so AAAA lookups are filtered on dual-stack networks
+  $want = @($front + $Mullvad + '2a07:e340::6' | Select-Object -Unique)
+  if (($cur -join ',') -ne ($want -join ',')) {
+    Set-DnsClientServerAddress -InterfaceIndex $_.ifIndex -ServerAddresses $want -EA SilentlyContinue
   }
 }
 

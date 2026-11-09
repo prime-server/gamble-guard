@@ -25,25 +25,32 @@ cat "$T"/src.* | tr -d '\r' | tr 'A-Z' 'a-z' \
   | grep -vE '^(localhost|localhost\.localdomain|broadcasthost|local)$' \
   | sort -u > "$T/all"
 
-# brand mirrors: the same brand reappears on a new TLD within days of being blocked
-TLDS="com io net cc bet casino games gg win vip co ag eu us to me app xyz"
+# brand mirrors: the same brand reappears on a new TLD within days of being blocked.
+# Kept to the TLDs brands actually use: every TLD costs compact two lines per token (see the 45k gate)
+TLDS="com net io bet casino co eu vip"
 grep -vE '^\s*#|^\s*$' tools/brands.txt | tr ' ' '\n' | grep . | while read -r b; do
-  for t in $TLDS; do for p in "" "www." "m."; do echo "$p$b.$t"; done; done
+  for t in $TLDS; do for p in "" "www."; do echo "$p$b.$t"; done; done
 done | sort -u > "$T/mirrors"
 
-sort -u "$T/all" "$T/mirrors" > "$T/full"
+# exact domains for brands whose name is a common word (toto, coral, tab...): never TLD-expanded,
+# always in both lists, and not subject to the first-label brand gate below
+sed -E 's/#.*$//; s/[[:space:]]+//g; s/^www\.//' tools/extra-exact.txt | tr 'A-Z' 'a-z' \
+  | grep -E '^[a-z0-9][a-z0-9.-]*\.[a-z]{2,}$' | while read -r d; do echo "$d"; echo "www.$d"; done | sort -u > "$T/exact"
+
+sort -u "$T/all" "$T/mirrors" "$T/exact" > "$T/full"
 # compact (Windows): entries whose first label starts with a known brand, plus the mirrors.
 # The Windows DNS client stalls above ~50k hosts lines (measured: >25 s/lookup at 344k).
 # first label must BE the brand (optionally brand-NNN / brand-xx), not merely start with it:
 # "coral" must not drag in every coral*.com on the internet.
 pat="^(www\.|m\.)?($(grep -vE '^\s*#|^\s*$' tools/brands.txt | tr ' ' '\n' | grep . | sed 's/[.-]/\\&/g' | paste -sd'|' -))(-?[0-9]{1,4}|-[a-z]{1,6})?\."
-grep -E "$pat" "$T/full" | sort -u "$T/mirrors" - > "$T/compact"
+grep -E "$pat" "$T/full" | sort -u "$T/mirrors" "$T/exact" - > "$T/compact"
 
 # refuse to publish a broken build
 for f in full compact; do
   n=$(wc -l < "$T/$f" | tr -d ' ')
   [ "$f" = full ] && min=100000 || min=5000
   [ "$n" -ge "$min" ] || { echo "$f has only $n entries; refusing" >&2; exit 1; }
+  if [ "$f" = compact ] && [ "$n" -gt 45000 ]; then echo "compact has $n entries (>45000 stalls the Windows DNS client); refusing" >&2; exit 1; fi
 done
 # never block the infrastructure people depend on
 for d in google.com apple.com microsoft.com github.com cloudflare.com amazonaws.com icloud.com; do

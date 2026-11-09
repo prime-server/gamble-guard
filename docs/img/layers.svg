@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" width="1200" height="520" role="img" aria-labelledby="t d">
 <title id="t">How gamble-guard works: five layers</title>
-<desc id="d">Hand-drawn diagram: a filtering DNS cloud with a crossed-out die, a hosts-file paper list, three locked browser windows, two watchdogs restoring each other, and an hourglass for the 7-day cooling-off.</desc>
+<desc id="d">Hand-drawn diagram: a filtering DNS cloud with a crossed-out die, a hosts-file paper list, three locked browser windows, two watchdogs restoring each other, and an hourglass that never runs out: there is no uninstall.</desc>
 <defs>
 <filter id="wob" x="-5%" y="-5%" width="110%" height="110%">
 <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="2" seed="11" result="n"/>
@@ -123,7 +123,7 @@
 <text class="hand h" x="835" y="332">two watchdogs</text>
 <text class="hand s" x="835" y="362">each puts the other back</text>
 
-<!-- 5: hourglass + 7 days -->
+<!-- 5: hourglass that never runs out -->
 <g filter="url(#wob)" class="ink">
 <path d="M 1032 180 L 1090 180 L 1068 240 L 1090 300 L 1032 300 L 1054 240 Z" fill="#fff"/>
 <path d="M 1044 202 L 1078 202 L 1064 236 L 1058 236 Z" fill="#f6d78a" stroke="none"/>
@@ -134,12 +134,12 @@
 <rect x="1104" y="252" width="56" height="50" rx="5" fill="#fff"/>
 <rect x="1104" y="252" width="56" height="13" rx="3" fill="#c2574f"/>
 </g>
-<text class="hand" x="1132" y="294" font-size="26" font-weight="bold" fill="#1f2a44" text-anchor="middle">7d</text>
-<text class="hand h" x="1070" y="332">removal is slow</text>
-<text class="hand s" x="1070" y="362">uninstall waits 7 days</text>
+<text class="hand" x="1132" y="294" font-size="26" font-weight="bold" fill="#1f2a44" text-anchor="middle">&#8734;</text>
+<text class="hand h" x="1070" y="332">no uninstall</text>
+<text class="hand s" x="1070" y="362">permanent by design</text>
 
-<!-- honest footer -->
+<!-- footer -->
 <path class="ink" filter="url(#wob)" d="M 120 410 C 400 404 800 416 1080 408" stroke="#d8d0bd" stroke-width="2.5"/>
-<text class="hand" x="600" y="452" font-size="21" fill="#4a5368" text-anchor="middle">this is friction, not a lock: an admin can still undo it. the strongest lock is another person.</text>
-<text class="hand" x="600" y="484" font-size="19" fill="#8a8f99" text-anchor="middle">friction usually wins anyway. a craving lasts minutes; the cooling-off lasts a week.</text>
+<text class="hand" x="600" y="452" font-size="21" fill="#4a5368" text-anchor="middle">a lock, not a setting. the only key is a partner's passphrase chosen at install.</text>
+<text class="hand" x="600" y="484" font-size="19" fill="#8a8f99" text-anchor="middle">a craving lasts minutes. this lasts forever.</text>
 </svg>

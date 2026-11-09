@@ -6,7 +6,9 @@ MARK_B="# <<< gamble-guard <<<"
 LIST="${LIST:-/usr/local/share/gambleguard/blocklist.txt}"
 HOSTS="${HOSTS:-/etc/hosts}"       # overridable so the logic can be tested off a real system
 VPN_LIST="${VPN_LIST:-/usr/local/share/gambleguard/vpn.txt}"
-VPN_FLAG="${VPN_FLAG:-/usr/local/share/gambleguard/vpn-block}"   # created by VPN_BLOCK=1 at install
+VPN_FLAG="${VPN_FLAG:-/usr/local/share/gambleguard/vpn-block}"   # created at install unless VPN_BLOCK=0
+ALLOW="${ALLOW:-/usr/local/share/gambleguard/allow.txt}"         # one domain per line, '#' comments: a false positive (a work site) goes here
+exceptions(){ sed -e 's/#.*//' -e 's/[[:space:]]//g' -e '/./!d' -e 's/^/0.0.0.0 /' "$ALLOW" | tr 'A-Z' 'a-z'; }  # allow.txt as hosts lines
 
 # --- 0. weekly list refresh --------------------------------------------------
 # A GitHub Action rebuilds lists/ every Monday from four upstream blocklists; pull it so
@@ -34,12 +36,15 @@ fi
 # --- 1. the hosts block ---------------------------------------------------
 if [ -r "$LIST" ]; then
   TMP=$(mktemp) || exit 0
-  trap 'rm -f "$TMP"' EXIT
+  trap 'rm -f "$TMP" "$TMP.v4"' EXIT
   sed "/^${MARK_A}\$/,/^${MARK_B}\$/d" "$HOSTS" > "$TMP"   # keep everything else in the file
   printf '%s\n' "$MARK_A" >> "$TMP"
-  cat "$LIST" >> "$TMP"
-  # opt-in: also close VPN/proxy/DoH bypass routes (Gamban and BetBlocker both do)
-  [ -f "$VPN_FLAG" ] && [ -r "$VPN_LIST" ] && cat "$VPN_LIST" >> "$TMP"
+  # VPN/proxy/DoH bypass routes are closed too unless VPN_BLOCK=0 was chosen at install (Gamban and BetBlocker both do this).
+  # allow.txt drops a listed domain as an exact "0.0.0.0 <domain>" line and nothing else: not its subdomains, never the block.
+  { cat "$LIST"; [ -f "$VPN_FLAG" ] && [ -r "$VPN_LIST" ] && cat "$VPN_LIST"; } \
+    | if [ -r "$ALLOW" ]; then grep -vxF -f <(exceptions); else cat; fi > "$TMP.v4"
+  # answer AAAA as well: a dual-stack browser otherwise walks past an IPv4-only block over IPv6
+  cat "$TMP.v4" >> "$TMP"; sed 's/^0\.0\.0\.0 /:: /' "$TMP.v4" >> "$TMP"; rm -f "$TMP.v4"
   printf '%s\n' "$MARK_B" >> "$TMP"
   if ! cmp -s "$TMP" "$HOSTS"; then
     chflags noschg "$HOSTS" 2>/dev/null || true

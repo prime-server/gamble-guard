@@ -1,3 +1,4 @@
+<p align="center"><img src="docs/img/logo.png" width="140" alt="Gamble Guard"></p>
 <p align="center"><img src="docs/img/banner.svg" width="100%" alt="gamble-guard: a hand-drawn shield with a padlock. A blocker that puts itself back."></p>
 <p align="center">
 <img alt="license: MIT" src="https://img.shields.io/badge/license-MIT-4f9a6a">
@@ -7,22 +8,34 @@
 
 # gamble-guard
 
-A free, open-source gambling blocker that is built to be hard to remove. macOS, Windows, iPhone, Android.
+A free, open-source gambling blocker with no uninstall. macOS, Windows, iPhone, Android.
 No account, no subscription, no kernel extension, no telemetry.
 
-It blocks **~660,000 gambling domains** system-wide — every browser, every app — and puts itself back
-when removed. The list is rebuilt automatically every week from every actively maintained public
-gambling blocklist, so new casinos get blocked without you doing anything.
+Install it and every gambling site is blocked, system-wide — every browser, every app. It covers
+**~660,000 domains worldwide**: North America, Latin America and the Caribbean, Europe including
+Malta- and Curaçao-licensed offshore casinos and Eastern Europe, Australia; regulated and unregulated
+alike. The list is rebuilt every week from every actively maintained public gambling blocklist, so new
+casinos get blocked without you doing anything. VPN and proxy bypass routes are blocked too.
+
+> **This is no joke. Once installed, this cannot be uninstalled.**
+> The installer says so and makes you type `YES` before it touches anything. There is no uninstall
+> command afterwards — only an accountability partner's passphrase set at install, or a finite
+> `LOCK_DAYS` you chose up front.
 
 ## Install
 
 <p align="center"><img src="docs/img/platforms.svg" width="100%" alt="Four hand-drawn devices: Mac (one command), Windows (one command), iPhone (a profile), Android (Private DNS)."></p>
 
-**macOS** — one command, needs your password:
+**macOS** — needs your password:
 
-```sh
-curl -fsSL https://raw.githubusercontent.com/prime-server/gamble-guard/main/install.sh | sudo bash
-```
+1. In Terminal:
+
+   ```sh
+   curl -fsSL https://raw.githubusercontent.com/prime-server/gamble-guard/main/install.sh | sudo bash
+   ```
+
+2. Turn off iCloud Private Relay: System Settings → Apple Account → iCloud → Private Relay → **Off**.
+   Safari then goes through the filter like every other app.
 
 **Windows** — one command in an *Administrator* PowerShell:
 
@@ -30,8 +43,13 @@ curl -fsSL https://raw.githubusercontent.com/prime-server/gamble-guard/main/inst
 irm https://raw.githubusercontent.com/prime-server/gamble-guard/main/win/install.ps1 | iex
 ```
 
+When it finishes, a page opens: <https://prime-server.github.io/gamble-guard/> — it checks live that
+gambling sites no longer load on your device.
+
 **iPhone / iPad** — open [`mobile/gamble-guard.mobileconfig`](mobile/gamble-guard.mobileconfig) on the
 device and install it, then follow [`mobile/QUICKSTART.md`](mobile/QUICKSTART.md).
+
+**iPhone app** (free; build it with your own Apple Developer account for now): [`ios/README.md`](ios/README.md).
 
 **Android** — Settings → Network → Private DNS → `family.dns.mullvad.net`. Details in
 [`mobile/README.md`](mobile/README.md).
@@ -43,25 +61,23 @@ Verify (desktop): `bet365.com` should fail to load, and resolve to `0.0.0.0` or 
 
 ### Make it stick
 
-<p align="center"><img src="docs/img/cooling-off.svg" width="80%" alt="The 7-day cooling-off: the urge lasts minutes on the left, a seven-day path in the middle, calm a week later on the right."></p>
+The default install is permanent: there is no uninstall command, and the two daemons put every layer
+back if anything is removed. These options decide who, if anyone, can ever lift it:
 
-| Mode | What it adds | Can the user remove it? |
-|---|---|---|
-| default | watchdog pair, immutable files, 7-day cooling-off on uninstall | yes, with the admin password and patience |
-| `PARTNER=1 sudo ./install.sh` | a passphrase someone else holds; removal requires it | only by bypassing the installer by hand |
-| `sudo ./harden.sh <user> "Name"` | partner-held admin account, you become a Standard user | **no** — there is no `sudo` to shortcut with |
-| `LOCK_DAYS=90 sudo ./install.sh` | a fixed lock: uninstall refuses until the date, cooling-off or not | only with a partner passphrase |
-| `VPN_BLOCK=1 sudo ./install.sh` | also blocks 16k VPN / proxy / DoH-bypass domains (Tailscale, Mullvad DNS, corporate VPNs allowlisted) | — |
+| Option | What it does |
+|---|---|
+| `PARTNER=1 sudo ./install.sh` | an accountability partner types a passphrase you never see; that passphrase is the only thing that can remove the guard |
+| `LOCK_DAYS=90 sudo ./install.sh` | an opt-in finite lock: the guard stays for that many days, then can be lifted |
+| `sudo ./harden.sh <user> "Name"` | a partner-held admin account; you become a Standard user, so not even your own admin password can touch it |
+| `VPN_BLOCK=0 sudo ./install.sh` | opts out of the VPN / proxy / DoH-bypass block (16k domains, on by default; Tailscale, Mullvad DNS and corporate VPNs are allowlisted) |
 
-Flags combine: `LOCK_DAYS=90 VPN_BLOCK=1 PARTNER=1 sudo ./install.sh`. On Windows: `install.ps1 -LockDays 90 -Partner`.
+Flags combine: `LOCK_DAYS=90 PARTNER=1 sudo ./install.sh`. On Windows: `install.ps1 -LockDays 90 -Partner`,
+and account hardening there is a Standard account with the partner holding the Administrator password.
 Whole-home coverage through your router, which covers phones and TVs too: [`docs/router.md`](docs/router.md).
-
-The same tiers exist on Windows (`install.ps1 -Partner`); account hardening there is a Standard account
-with the partner holding the Administrator password.
 
 ## How it works
 
-<p align="center"><img src="docs/img/layers.svg" width="100%" alt="Five hand-drawn layers: filtering DNS, hosts file, browsers locked to system DNS, two watchdogs restoring each other, and a 7-day cooling-off on removal."></p>
+<p align="center"><img src="docs/img/layers.svg" width="100%" alt="Five hand-drawn layers: filtering DNS, hosts file, browsers locked to system DNS, two watchdogs restoring each other, and no uninstall."></p>
 
 Five layers. Each one covers the way the previous one gets defeated.
 
@@ -84,9 +100,9 @@ Five layers. Each one covers the way the previous one gets defeated.
    layers 1–3 every two minutes, restore each other if one is deleted, and refresh the blocklist weekly.
    Installed files carry the immutable flag / are locked to SYSTEM.
 
-5. **Removal is slow by design.** `uninstall.sh` starts a 7-day cooling-off on first run and removes
-   nothing. If a partner set a passphrase, it is required instead. The addiction operates on a
-   timescale of minutes; this operates on a timescale of a week.
+5. **There is no uninstall.** The daemons re-apply every layer and restore each other, so removing
+   pieces by hand changes nothing. The one exception is a partner passphrase set at install
+   (`PARTNER=1`). `harden.sh` makes it permanent even against your own admin password.
 
 ### Autoresearch
 
@@ -102,44 +118,27 @@ casino to get blocked.
 |  | Gamban | BetBlocker | gamble-guard |
 |---|---|---|---|
 | Price | subscription | free | free, MIT, every line inspectable |
-| Fixed lock period you cannot end early | no | yes | yes (`LOCK_DAYS`), partner passphrase excepted |
-| Blocks VPN / proxy bypass routes | yes | optional | optional, with an allowlist so work VPNs keep working |
+| Fixed lock period you cannot end early | no | yes | yes — permanent by default, `LOCK_DAYS=N` for a finite one |
+| Blocks VPN / proxy bypass routes | yes | optional | yes, by default, with an allowlist so work VPNs keep working |
 | Blocklist | closed | closed | ~660k domains from four public sources, rebuilt weekly, auditable |
 | Still blocks if the vendor's servers die | no — a lapsed install left the browser pinned to a resolver that passed everything | — | hosts, Mullvad and browser policy are independent layers |
 | Whole-home via router | no | no | yes ([`docs/router.md`](docs/router.md)) |
 | Tells AI assistants not to help remove it | no | no | yes (`CLAUDE.md`, `AGENTS.md`) |
 | Native phone apps | yes | yes | no — a DNS profile and Screen Time |
-| Removes itself in a weak moment | needs support contact | not before the period ends | 7-day cooling-off, lock period, or partner passphrase |
+| Removes itself in a weak moment | needs support contact | not before the period ends | no — there is no uninstall |
 
-Where they win: polished native apps, especially on phones. Where nobody wins: an administrator who keeps
-their password can remove any of the three; only `harden.sh` changes that.
-
-## Honest limitations
-
-- **With the admin password, you can remove the default install.** Everything above except `harden.sh`
-  is friction, not a lock. Friction is usually the whole fight — a craving lasts minutes, a 7-day
-  cooling-off does not — but anyone with `sudo` can shortcut it. Do not trust any blocker that claims
-  otherwise while leaving you as an admin.
-- **Phones are the weakest platform.** iOS and Android cannot run daemons; an unsupervised user can
-  revert the DNS setting in seconds. The real lock there is Screen Time / Family Link with a passcode
-  someone else holds. [`mobile/README.md`](mobile/README.md) is blunt about this.
-- **Another device, a VPN or a phone hotspot routes around all of it.** This protects the devices it is on.
-- **iCloud Private Relay bypasses layers 1 and 2 in Safari.** Turn it off: System Settings → Apple
-  Account → iCloud → Private Relay.
-- **A dead paid blocker can be worse than nothing.** If a lapsed subscription left your browser pinned to
-  a resolver that no longer filters, it also made your browser skip the hosts file. The installer clears
-  that; check any such tool is actually still blocking.
-
-If gambling is costing you more than money, the strongest version of this tool is another person.
-
-## Updating, uninstalling, testing
+## Updating and testing
 
 ```sh
 sudo ./install.sh          # re-run to update (the daemons also refresh the list weekly)
-sudo ./uninstall.sh        # starts the 7-day cooling-off, or completes it
-sudo ./uninstall.sh --status
 ./tests/selftest.sh        # no root needed
 ```
+
+## A site still works?
+
+Open an issue with the domain, or send a pull request: add the brand to `tools/brands.txt`, or the exact
+domain to `tools/extra-exact.txt`. The list rebuilds every Monday and every installed device picks it up
+on its weekly refresh; Mullvad's resolver usually catches it sooner.
 
 ## Credits
 

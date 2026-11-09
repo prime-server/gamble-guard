@@ -1,12 +1,31 @@
 #!/bin/bash
-# gamble-guard installer. Run with sudo.
+# gamble-guard installer. Run with sudo. Once installed it is permanent: there is no uninstall.
 #   sudo ./install.sh                         install or update
-#   PARTNER=1 sudo ./install.sh               also set an accountability passphrase
-#   LOCK_DAYS=90 sudo ./install.sh            refuse any removal for 90 days (partner passphrase excepted)
-#   VPN_BLOCK=1 sudo ./install.sh             also block VPN/proxy/DoH bypass sites (remote-work tools allowlisted)
+#   PARTNER=1 sudo ./install.sh               an accountability partner's passphrase becomes the only way to remove it
+#   LOCK_DAYS=90 sudo ./install.sh            finite lock instead of forever: removal becomes possible after 90 days
+#   VPN_BLOCK=0 sudo ./install.sh             skip the VPN/proxy/DoH bypass list (on by default; remote-work tools allowlisted)
 #   LIST_URL=... sudo ./install.sh            use a different blocklist
 set -euo pipefail
 [ "$(id -u)" = 0 ] || { echo "Run with sudo: sudo ./install.sh"; exit 1; }
+
+# Say it before anything happens. Read from the terminal even when piped through curl;
+# with no terminal (automation), GG_YES=1 is the only way past.
+if [ "${GG_YES:-0}" != 1 ]; then
+  cat <<'WARN' >&2
+
+  This is no joke. Once gamble-guard is installed, it cannot be uninstalled.
+  Not in a week, not in a year. There is no uninstall command.
+  Are you sure this is what you want to do?
+  (Are you sure you want to save yourself? Pour la dérogation... there is none.)
+
+WARN
+  if [ -r /dev/tty ]; then
+    printf '  Type YES to continue: ' >&2; read -r ANS < /dev/tty
+  else
+    echo "  No terminal to confirm on. Re-run with GG_YES=1 to accept." >&2; exit 1
+  fi
+  [ "$ANS" = "YES" ] || { echo "Nothing installed." >&2; exit 1; }
+fi
 
 LIST_URL="${LIST_URL:-https://blocklistproject.github.io/Lists/gambling.txt}"
 SHARE=/usr/local/share/gambleguard
@@ -56,18 +75,19 @@ install -m 644 "$SRC/src/gambleguard-watch" "$SHARE/pristine/gambleguard-watch"
 install -m 644 "$SRC/src/com.gambleguard.plist"       "$SHARE/pristine/com.gambleguard.plist"
 install -m 644 "$SRC/src/com.gambleguard.watch.plist" "$SHARE/pristine/com.gambleguard.watch.plist"
 
-if [ "${VPN_BLOCK:-0}" = "1" ]; then
+# VPN/proxy/DoH bypass routes are closed by default; VPN_BLOCK=0 opts out
+if [ "${VPN_BLOCK:-1}" != "0" ]; then
   if [ -f "$SRC/lists/vpn.txt" ]; then install -m 644 "$SRC/lists/vpn.txt" "$SHARE/vpn.txt"; touch "$SHARE/vpn-block"
     echo "    VPN/proxy bypass list enabled ($(wc -l < "$SHARE/vpn.txt" | tr -d ' ') domains)."
-  else echo "    (no lists/vpn.txt in this checkout; VPN_BLOCK skipped)"; fi
+  else echo "    (no lists/vpn.txt in this checkout; VPN block skipped)"; fi
 fi
 
-# LOCK_DAYS=N: removal is impossible before this date, cooling-off or not. Like BetBlocker's
-# restriction period - the only early exit is an accountability partner's passphrase, if one exists.
+# LOCK_DAYS=N: a finite lock instead of forever. Removal becomes possible on this date; before it,
+# the only exit is an accountability partner's passphrase, if one exists.
 if [ "${LOCK_DAYS:-0}" -gt 0 ] 2>/dev/null; then
   UNTIL=$(( $(date +%s) + LOCK_DAYS * 86400 ))
   printf '%s\n' "$UNTIL" > "$SHARE/locked-until"
-  echo "    Locked until $(date -r "$UNTIL" '+%Y-%m-%d'): uninstall will refuse before then."
+  echo "    Locked until $(date -r "$UNTIL" '+%Y-%m-%d'): removal becomes possible after that."
 fi
 
 if [ "${PARTNER:-0}" = "1" ]; then
@@ -94,12 +114,18 @@ chflags schg /usr/local/bin/gambleguard /usr/local/bin/gambleguard-watch \
   "$SHARE/blocklist.txt" "$SHARE/pristine"/* "$SHARE/locked-until" "$SHARE/vpn.txt" "$SHARE/vpn-block" 2>/dev/null || true
 
 echo
-echo "Done. $COUNT domains blocked across Chrome, Firefox and Safari."
+echo "$COUNT domains blocked across Chrome, Firefox and Safari."
 echo "Two daemons re-apply it every 120s and restore each other if deleted."
 echo "System DNS now goes through Mullvad's family resolver (194.242.2.6), which also filters"
 echo "gambling - that catches new mirrors before the list does. Tailscale is left alone."
 echo "Turn OFF iCloud Private Relay (System Settings > Apple Account > iCloud) or Safari bypasses it."
-[ -f "$SHARE/partner.sha256" ] && echo "Removal requires the partner passphrase." \
-  || echo "Removal requires a 7-day cooling-off: sudo ./uninstall.sh"
-[ -f "$SHARE/locked-until" ] && echo "Lock period: no removal before $(date -r "$(cat "$SHARE/locked-until")" '+%Y-%m-%d')."
 echo "Verify:  dscacheutil -q host -a name bet365.com"
+echo
+echo "Done. Permanent: there is no uninstall."
+[ -f "$SHARE/partner.sha256" ] && echo "Partner passphrase: set. It is the only way to remove this."
+[ -f "$SHARE/locked-until" ] && echo "Lock: removal becomes possible on $(date -r "$(cat "$SHARE/locked-until")" '+%Y-%m-%d')."
+
+# congratulations page, in the browser of whoever ran sudo; never a failure
+URL="https://prime-server.github.io/gamble-guard/"
+if [ -n "${SUDO_USER:-}" ]; then sudo -u "$SUDO_USER" open "$URL" 2>/dev/null || true
+else open "$URL" 2>/dev/null || true; fi
