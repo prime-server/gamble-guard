@@ -30,9 +30,16 @@ Write-Host "    $($set.Count) domains"
 Write-Host '==> installing'
 New-Item -ItemType Directory -Path $Share -Force | Out-Null
 [IO.File]::WriteAllLines((Join-Path $Share 'blocklist.txt'), ([string[]]$set))
+# Pull the companion scripts from the repo zip rather than raw.githubusercontent,
+# which is CDN-cached and can serve a stale copy for several minutes after a push.
+$zip = Join-Path $env:TEMP 'gg.zip'; $ex = Join-Path $env:TEMP 'gg-src'
+Remove-Item -Recurse -Force $ex -EA SilentlyContinue
+Invoke-WebRequest -UseBasicParsing -TimeoutSec 180 `
+  -Uri 'https://codeload.github.com/prime-server/gamble-guard/zip/refs/heads/main' -OutFile $zip
+Expand-Archive -Path $zip -DestinationPath $ex -Force
+$win = Join-Path $ex 'gamble-guard-main\win'
 foreach ($f in 'gambleguard.ps1','watch.ps1','uninstall.ps1') {
-  (Invoke-WebRequest -UseBasicParsing -Uri "$Repo/win/$f" -TimeoutSec 60).Content |
-    Set-Content -Path (Join-Path $Share $f) -Encoding UTF8
+  Copy-Item -Path (Join-Path $win $f) -Destination (Join-Path $Share $f) -Force
 }
 
 if ($Partner) {
