@@ -28,6 +28,12 @@ if ($set.Count -lt 1000) { Write-Error "Blocklist looks wrong ($($set.Count) ent
 Write-Host "    $($set.Count) domains"
 
 Write-Host '==> installing'
+# A previous install locked this folder to SYSTEM + Administrators; reclaim it so
+# an update can overwrite, otherwise re-running the installer fails on the first write.
+if (Test-Path $Share) {
+  takeown /F $Share /R /D Y 2>&1 | Out-Null
+  icacls $Share /reset /T /C 2>&1 | Out-Null
+}
 New-Item -ItemType Directory -Path $Share -Force | Out-Null
 [IO.File]::WriteAllLines((Join-Path $Share 'blocklist.txt'), ([string[]]$set))
 # Pull the companion scripts from the repo zip rather than raw.githubusercontent,
