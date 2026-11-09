@@ -60,11 +60,13 @@ if (Test-Path $List) {
 # often leaves working filter servers behind - probe them and keep them in front.
 $Mullvad = '194.242.2.6'
 function Test-Blocks($srv) {
-  try {
-    $g = Resolve-DnsName bet365.com -Server $srv -Type A -DnsOnly -QuickTimeout -EA Stop | Where-Object { $_.IPAddress }
-    $c = Resolve-DnsName github.com -Server $srv -Type A -DnsOnly -QuickTimeout -EA Stop | Where-Object { $_.IPAddress }
-    return ($c -and (-not $g -or $g[0].IPAddress -eq '0.0.0.0'))
-  } catch { return $false }   # a timeout on bet365 is ambiguous; treat as "does not provably block"
+  # a filtering resolver answers the control domain and either refuses, blanks, or simply
+  # drops the gambling one - some blockers' servers never answer at all, so a timeout on
+  # bet365 with github resolving counts as blocking
+  try { $c = Resolve-DnsName github.com -Server $srv -Type A -DnsOnly -QuickTimeout -EA Stop | Where-Object { $_.IPAddress } } catch { return $false }
+  if (-not $c) { return $false }
+  try { $g = Resolve-DnsName bet365.com -Server $srv -Type A -DnsOnly -QuickTimeout -EA Stop | Where-Object { $_.IPAddress } } catch { return $true }
+  return (-not $g -or $g[0].IPAddress -eq '0.0.0.0')
 }
 # a server that blocked once keeps its place without re-probing every 2 minutes
 $KeepFile = Join-Path $Share 'keep-dns.txt'
