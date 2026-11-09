@@ -9,9 +9,8 @@
 #   sudo ./uninstall.sh           request removal, or complete it if the wait is up
 #   sudo ./uninstall.sh --status  how long is left
 set -euo pipefail
-[ "$(id -u)" = 0 ] || { echo "Run with sudo: sudo ./uninstall.sh"; exit 1; }
 
-SHARE=/usr/local/share/gambleguard
+SHARE="${SHARE:-/usr/local/share/gambleguard}"
 REQ="$SHARE/unlock.request"
 PARTNER="$SHARE/partner.sha256"
 DELAY_DAYS="${DELAY_DAYS:-7}"
@@ -27,7 +26,9 @@ status() {
     echo "No removal requested. gamble-guard is active."
   fi
 }
-[ "${1:-}" = "--status" ] && { status; exit 0; }
+[ "${1:-}" = "--status" ] && { status; exit 0; }   # read-only, needs no root
+
+[ "$(id -u)" = 0 ] || { echo "Run with sudo: sudo ./uninstall.sh"; exit 1; }
 
 if [ -f "$PARTNER" ]; then
   printf "Accountability passphrase: " >&2
