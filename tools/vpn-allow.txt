@@ -1,0 +1,17 @@
+# Never blocked by the optional VPN/proxy list, even if an upstream source lists them.
+# Remote-access and DNS infrastructure people depend on; blocking these breaks work, not gambling.
+tailscale.com
+login.tailscale.com
+controlplane.tailscale.com
+pkgs.tailscale.com
+mullvad.net
+dns.mullvad.net
+family.dns.mullvad.net
+base.dns.mullvad.net
+one.one.one.one
+cloudflare-dns.com
+dns.google
+zscaler.com
+zscaler.net
+anyconnect.cisco.com
+globalprotect.paloaltonetworks.com

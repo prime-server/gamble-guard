@@ -2,6 +2,8 @@
 # gamble-guard installer. Run with sudo.
 #   sudo ./install.sh                         install or update
 #   PARTNER=1 sudo ./install.sh               also set an accountability passphrase
+#   LOCK_DAYS=90 sudo ./install.sh            refuse any removal for 90 days (partner passphrase excepted)
+#   VPN_BLOCK=1 sudo ./install.sh             also block VPN/proxy/DoH bypass sites (remote-work tools allowlisted)
 #   LIST_URL=... sudo ./install.sh            use a different blocklist
 set -euo pipefail
 [ "$(id -u)" = 0 ] || { echo "Run with sudo: sudo ./install.sh"; exit 1; }
@@ -54,6 +56,20 @@ install -m 644 "$SRC/src/gambleguard-watch" "$SHARE/pristine/gambleguard-watch"
 install -m 644 "$SRC/src/com.gambleguard.plist"       "$SHARE/pristine/com.gambleguard.plist"
 install -m 644 "$SRC/src/com.gambleguard.watch.plist" "$SHARE/pristine/com.gambleguard.watch.plist"
 
+if [ "${VPN_BLOCK:-0}" = "1" ]; then
+  if [ -f "$SRC/lists/vpn.txt" ]; then install -m 644 "$SRC/lists/vpn.txt" "$SHARE/vpn.txt"; touch "$SHARE/vpn-block"
+    echo "    VPN/proxy bypass list enabled ($(wc -l < "$SHARE/vpn.txt" | tr -d ' ') domains)."
+  else echo "    (no lists/vpn.txt in this checkout; VPN_BLOCK skipped)"; fi
+fi
+
+# LOCK_DAYS=N: removal is impossible before this date, cooling-off or not. Like BetBlocker's
+# restriction period - the only early exit is an accountability partner's passphrase, if one exists.
+if [ "${LOCK_DAYS:-0}" -gt 0 ] 2>/dev/null; then
+  UNTIL=$(( $(date +%s) + LOCK_DAYS * 86400 ))
+  printf '%s\n' "$UNTIL" > "$SHARE/locked-until"
+  echo "    Locked until $(date -r "$UNTIL" '+%Y-%m-%d'): uninstall will refuse before then."
+fi
+
 if [ "${PARTNER:-0}" = "1" ]; then
   echo
   echo ">>> Hand the keyboard to your accountability partner."
@@ -75,7 +91,7 @@ done
 chflags schg /usr/local/bin/gambleguard /usr/local/bin/gambleguard-watch \
   /Library/LaunchDaemons/com.gambleguard.plist \
   /Library/LaunchDaemons/com.gambleguard.watch.plist \
-  "$SHARE/blocklist.txt" "$SHARE/pristine"/* 2>/dev/null || true
+  "$SHARE/blocklist.txt" "$SHARE/pristine"/* "$SHARE/locked-until" "$SHARE/vpn.txt" "$SHARE/vpn-block" 2>/dev/null || true
 
 echo
 echo "Done. $COUNT domains blocked across Chrome, Firefox and Safari."
@@ -85,4 +101,5 @@ echo "gambling - that catches new mirrors before the list does. Tailscale is lef
 echo "Turn OFF iCloud Private Relay (System Settings > Apple Account > iCloud) or Safari bypasses it."
 [ -f "$SHARE/partner.sha256" ] && echo "Removal requires the partner passphrase." \
   || echo "Removal requires a 7-day cooling-off: sudo ./uninstall.sh"
+[ -f "$SHARE/locked-until" ] && echo "Lock period: no removal before $(date -r "$(cat "$SHARE/locked-until")" '+%Y-%m-%d')."
 echo "Verify:  dscacheutil -q host -a name bet365.com"

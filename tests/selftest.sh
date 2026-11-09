@@ -100,4 +100,24 @@ chk "resolver: keeps filtering server in front" "$(grep -c '^Ethernet 10.9.9.9 1
 chk "resolver: replaces non-filtering server"   "$(grep -c '^Guest 194.242.2.6 2a07:e340::6$' "$T4/log")" 1
 chk "resolver: sets unset service"              "$(grep -c '^USB LAN 194.242.2.6 2a07:e340::6$' "$T4/log")" 1
 chk "resolver: Tailscale never touched"         "$(grep -c '^Tailscale' "$T4/log")" 0
+
+# --- lock period ------------------------------------------------------------
+T5=$(mktemp -d); trap 'rm -rf "$T" "$T2" "$T3" "$T4" "$T5"' EXIT
+printf '%s\n' "$(( $(date +%s) + 30*86400 ))" > "$T5/locked-until"
+out=$(SHARE="$T5" ./uninstall.sh --status)
+chk "lock: status reports lock"   "$(echo "$out" | grep -c '^Locked')" 1
+chk "lock: ~30 days remaining"    "$(echo "$out" | grep -cE 'for (29|30) more days')" 1
+printf '%s\n' "$(( $(date +%s) - 10 ))" > "$T5/locked-until"
+out=$(SHARE="$T5" ./uninstall.sh --status)
+chk "lock: expired lock is silent" "$(echo "$out" | grep -c '^Locked')" 0
+
+# --- optional VPN list -------------------------------------------------------
+T6=$(mktemp -d); trap 'rm -rf "$T" "$T2" "$T3" "$T4" "$T5" "$T6"' EXIT
+printf '127.0.0.1\tlocalhost\n' > "$T6/hosts"; printf '0.0.0.0 bet365.com\n' > "$T6/list"; printf '0.0.0.0 nordvpn.com\n' > "$T6/vpn"
+v(){ LIST="$T6/list" HOSTS="$T6/hosts" VPN_LIST="$T6/vpn" VPN_FLAG="$T6/flag" SKIP_BROWSERS=1 SKIP_DNS=1 SKIP_REFRESH=1 ./src/gambleguard; }
+v
+chk "vpn: off by default"          "$(grep -c 'nordvpn' "$T6/hosts")" 0
+touch "$T6/flag"; v
+chk "vpn: appended when enabled"   "$(grep -c '^0.0.0.0 nordvpn.com$' "$T6/hosts")" 1
+chk "vpn: gambling list still there" "$(grep -c '^0.0.0.0 bet365.com$' "$T6/hosts")" 1
 exit $fail

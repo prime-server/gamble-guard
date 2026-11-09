@@ -17,7 +17,12 @@ DELAY_DAYS="${DELAY_DAYS:-7}"
 DELAY=$(( DELAY_DAYS * 86400 ))
 NOW=$(date +%s)
 
+LOCK="$SHARE/locked-until"
+lock_left(){ [ -f "$LOCK" ] && echo $(( $(cat "$LOCK") - NOW )) || echo 0; }
 status() {
+  if [ "$(lock_left)" -gt 0 ]; then
+    echo "Locked: no removal possible for $(( $(lock_left) / 86400 )) more days (until $(date -r "$(cat "$LOCK")" '+%Y-%m-%d'))."
+  fi
   if [ -f "$REQ" ]; then
     LEFT=$(( $(cat "$REQ") + DELAY - NOW ))
     [ "$LEFT" -le 0 ] && echo "Cooling-off complete. Re-run to remove." \
@@ -30,6 +35,11 @@ status() {
 
 [ "$(id -u)" = 0 ] || { echo "Run with sudo: sudo ./uninstall.sh"; exit 1; }
 
+# a lock period beats the cooling-off; only a partner passphrase can shorten it
+if [ "$(lock_left)" -gt 0 ] && [ ! -f "$PARTNER" ]; then
+  echo "Locked until $(date -r "$(cat "$LOCK")" '+%Y-%m-%d'). You chose this. Nothing here can shorten it." >&2
+  exit 1
+fi
 if [ -f "$PARTNER" ]; then
   printf "Accountability passphrase: " >&2
   read -rs PASS; echo >&2
@@ -64,7 +74,7 @@ for L in com.gambleguard com.gambleguard.watch; do
 done
 chflags noschg /usr/local/bin/gambleguard /usr/local/bin/gambleguard-watch \
   /Library/LaunchDaemons/com.gambleguard.plist /Library/LaunchDaemons/com.gambleguard.watch.plist \
-  "$SHARE" "$SHARE/blocklist.txt" /etc/hosts 2>/dev/null || true
+  "$SHARE" "$SHARE/blocklist.txt" "$SHARE/locked-until" /etc/hosts 2>/dev/null || true
 chflags -R noschg "$SHARE" 2>/dev/null || true
 rm -f /usr/local/bin/gambleguard /usr/local/bin/gambleguard-watch \
   /Library/LaunchDaemons/com.gambleguard.plist /Library/LaunchDaemons/com.gambleguard.watch.plist

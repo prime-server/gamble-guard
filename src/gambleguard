@@ -5,6 +5,8 @@ MARK_A="# >>> gamble-guard >>>"
 MARK_B="# <<< gamble-guard <<<"
 LIST="${LIST:-/usr/local/share/gambleguard/blocklist.txt}"
 HOSTS="${HOSTS:-/etc/hosts}"       # overridable so the logic can be tested off a real system
+VPN_LIST="${VPN_LIST:-/usr/local/share/gambleguard/vpn.txt}"
+VPN_FLAG="${VPN_FLAG:-/usr/local/share/gambleguard/vpn-block}"   # created by VPN_BLOCK=1 at install
 
 # --- 0. weekly list refresh --------------------------------------------------
 # A GitHub Action rebuilds lists/ every Monday from four upstream blocklists; pull it so
@@ -19,6 +21,12 @@ if [ "${SKIP_REFRESH:-}" != 1 ] && { [ ! -f "$STAMP" ] || [ -n "$(find "$STAMP" 
     install -m 644 "$NEW" "$LIST" && chflags schg "$LIST" 2>/dev/null
     touch "$STAMP"
     logger -t gambleguard "refreshed blocklist: $(wc -l < "$LIST" | tr -d ' ') entries"
+    if [ -f "$VPN_FLAG" ]; then
+      V=$(mktemp)
+      if curl -fsSL --max-time 120 "${VPN_URL:-${LIST_URL%/full.txt}/vpn.txt}" -o "$V" && [ "$(grep -c '^0\.0\.0\.0 ' "$V")" -ge 5000 ]; then
+        chflags noschg "$VPN_LIST" 2>/dev/null || true; install -m 644 "$V" "$VPN_LIST" && chflags schg "$VPN_LIST" 2>/dev/null
+      fi; rm -f "$V"
+    fi
   fi
   rm -f "$NEW"
 fi
@@ -30,6 +38,8 @@ if [ -r "$LIST" ]; then
   sed "/^${MARK_A}\$/,/^${MARK_B}\$/d" "$HOSTS" > "$TMP"   # keep everything else in the file
   printf '%s\n' "$MARK_A" >> "$TMP"
   cat "$LIST" >> "$TMP"
+  # opt-in: also close VPN/proxy/DoH bypass routes (Gamban and BetBlocker both do)
+  [ -f "$VPN_FLAG" ] && [ -r "$VPN_LIST" ] && cat "$VPN_LIST" >> "$TMP"
   printf '%s\n' "$MARK_B" >> "$TMP"
   if ! cmp -s "$TMP" "$HOSTS"; then
     chflags noschg "$HOSTS" 2>/dev/null || true

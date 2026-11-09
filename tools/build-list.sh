@@ -50,8 +50,21 @@ for d in google.com apple.com microsoft.com github.com cloudflare.com amazonaws.
   grep -qxF "$d" "$T/full" && { echo "false positive: $d in list; refusing" >&2; exit 1; }
 done
 
+# optional VPN/proxy/DoH-bypass list (clients enable with VPN_BLOCK=1). Gamban and BetBlocker
+# both close these routes; we do it with an allowlist so remote-work tools keep working.
+VPN_SRC="https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/doh-vpn-proxy-bypass-onlydomains.txt"
+if curl -fsSL --max-time 180 "$VPN_SRC" -o "$T/vpn.raw"; then
+  tr -d '\r' < "$T/vpn.raw" | tr 'A-Z' 'a-z' | sed -E 's/#.*$//; s/^\*\.//; s/\s+$//' \
+    | grep -E '^[a-z0-9][a-z0-9.-]*\.[a-z]{2,}$' | sort -u > "$T/vpn.all"
+  grep -vE '^\s*#|^\s*$' tools/vpn-allow.txt | sort -u > "$T/vpn.allow"
+  # drop allowlisted domains and anything under them
+  awk 'NR==FNR{a[$0]=1; next} { d=$0; keep=1; while (d != "") { if (d in a) {keep=0; break}; i=index(d,"."); if(!i) break; d=substr(d,i+1) } if(keep) print }' "$T/vpn.allow" "$T/vpn.all" > "$T/vpn"
+  [ "$(wc -l < "$T/vpn" | tr -d ' ')" -ge 5000 ] && sed 's/^/0.0.0.0 /' "$T/vpn" > lists/vpn.txt
+fi
+
 sed 's/^/0.0.0.0 /' "$T/full"    > lists/full.txt
 sed 's/^/0.0.0.0 /' "$T/compact" > lists/compact.txt
-printf 'built=%s\nfull=%s\ncompact=%s\nsources=%s\n' "$(date -u +%Y-%m-%dT%H:%MZ)" \
-  "$(wc -l < lists/full.txt | tr -d ' ')" "$(wc -l < lists/compact.txt | tr -d ' ')" "$ok" > lists/VERSION
+printf 'built=%s\nfull=%s\ncompact=%s\nvpn=%s\nsources=%s\n' "$(date -u +%Y-%m-%dT%H:%MZ)" \
+  "$(wc -l < lists/full.txt | tr -d ' ')" "$(wc -l < lists/compact.txt | tr -d ' ')" \
+  "$( [ -f lists/vpn.txt ] && wc -l < lists/vpn.txt | tr -d ' ' || echo 0)" "$ok" > lists/VERSION
 cat lists/VERSION
