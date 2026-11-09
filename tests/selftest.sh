@@ -67,4 +67,37 @@ chk "refresh: rejects tiny list"   "$(wc -l < "$T3/list" | tr -d ' ')" 100001
 chk "refresh: no stamp on reject"  "$([ -f "$T3/stamp" ] && echo 1 || echo 0)" 0
 touch "$T3/stamp"; rf "$T3/bad"
 chk "refresh: honours weekly stamp" "$(wc -l < "$T3/list" | tr -d ' ')" 100001
+
+# --- resolver: keep servers that already block, replace ones that do not --------
+T4=$(mktemp -d); trap 'rm -rf "$T" "$T2" "$T3" "$T4"' EXIT
+mkdir -p "$T4/bin"
+cat > "$T4/bin/networksetup" <<'F'
+#!/bin/bash
+case "$1" in
+  -listallnetworkservices) printf 'An asterisk (*) denotes that a network service is disabled.\nWi-Fi\nEthernet\nGuest\nUSB LAN\nTailscale\n' ;;
+  -getdnsservers) case "$2" in
+      Wi-Fi)    printf '194.242.2.6\n2a07:e340::6\n' ;;
+      Ethernet) printf '10.9.9.9\n' ;;              # a leftover blocker that still filters
+      Guest)    printf '10.8.8.8\n' ;;              # a plain resolver
+      *)        echo "There aren't any DNS Servers set on $2." ;;
+    esac ;;
+  -setdnsservers) shift; echo "$*" >> "$T4_LOG" ;;
+esac
+F
+cat > "$T4/bin/fakeprobe" <<'F'
+#!/bin/bash
+# usage: fakeprobe @server domain A  -> 10.9.9.9 blanks gambling, 10.8.8.8 resolves everything
+srv="${1#@}"; dom="$2"
+if [ "$srv" = 10.9.9.9 ] && [ "$dom" = bet365.com ]; then exit 0; fi
+echo 1.2.3.4
+F
+chmod +x "$T4/bin/networksetup" "$T4/bin/fakeprobe"
+: > "$T4/log"
+T4_LOG="$T4/log" PATH="$T4/bin:$PATH" DNS_PROBE="$T4/bin/fakeprobe" LIST=/nonexistent HOSTS="$T4/hosts" SKIP_BROWSERS=1 SKIP_REFRESH=1 ./src/gambleguard
+touch "$T4/hosts"
+chk "resolver: Wi-Fi untouched (already right)" "$(grep -c '^Wi-Fi ' "$T4/log")" 0
+chk "resolver: keeps filtering server in front" "$(grep -c '^Ethernet 10.9.9.9 194.242.2.6 2a07:e340::6$' "$T4/log")" 1
+chk "resolver: replaces non-filtering server"   "$(grep -c '^Guest 194.242.2.6 2a07:e340::6$' "$T4/log")" 1
+chk "resolver: sets unset service"              "$(grep -c '^USB LAN 194.242.2.6 2a07:e340::6$' "$T4/log")" 1
+chk "resolver: Tailscale never touched"         "$(grep -c '^Tailscale' "$T4/log")" 0
 exit $fail

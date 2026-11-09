@@ -46,19 +46,36 @@ fi
 # up. Pointing the OS resolver at Mullvad's free family DNS (filters gambling, no
 # account) closes that gap: with browser DoH forced off below, every lookup goes
 # hosts file first, then this. iCloud Private Relay must be off or Safari skips both.
+#
+# Never replace a resolver that is already blocking. A lapsed paid blocker often leaves
+# its filtering servers behind; swapping them out would trade one protection for another
+# at best. Existing servers are probed and kept in front of Mullvad if they still filter.
 DNS="194.242.2.6 2a07:e340::6"
+PROBE="${DNS_PROBE:-dig +short +time=3 +tries=1}"
+blocks(){  # $1 = server: refuses or blanks a gambling domain while resolving a control domain
+  local g c
+  g=$($PROBE @"$1" bet365.com A 2>/dev/null | head -1)
+  c=$($PROBE @"$1" github.com A 2>/dev/null | head -1)
+  [ -n "$c" ] && { [ -z "$g" ] || [ "$g" = "0.0.0.0" ]; }
+}
 if [ "${SKIP_DNS:-}" != 1 ]; then
   # skip disabled (*) services, Thunderbolt Bridge (never carries DNS) and Tailscale,
   # whose entry tailscaled owns for MagicDNS - overriding it breaks tailnet lookups
   networksetup -listallnetworkservices 2>/dev/null \
     | grep -v -e '^An asterisk' -e '^\*' -e '^Thunderbolt Bridge$' -e '^Tailscale$' \
     | while IFS= read -r S; do
-      [ "$(networksetup -getdnsservers "$S" 2>/dev/null | paste -sd' ' -)" = "$DNS" ] && continue   # already set, no churn
-      # $DNS unquoted on purpose: two servers, two arguments
-      networksetup -setdnsservers "$S" $DNS 2>/dev/null && logger -t gambleguard "set upstream resolver on $S"
+      CUR=$(networksetup -getdnsservers "$S" 2>/dev/null | grep -E '^[0-9a-fA-F.:]+$' | paste -sd' ' -)
+      KEEP=""
+      for ip in $CUR; do
+        case " $DNS " in *" $ip "*) continue;; esac
+        blocks "$ip" && KEEP="$KEEP $ip"
+      done
+      WANT=$(echo $KEEP $DNS)                     # existing filters first, then Mullvad
+      [ "$CUR" = "$WANT" ] && continue            # already right, no churn
+      # $WANT unquoted on purpose: one argument per server
+      networksetup -setdnsservers "$S" $WANT 2>/dev/null && logger -t gambleguard "set upstream resolver on $S: $WANT"
     done
 fi
-
 # --- 3. browser DNS ------------------------------------------------------
 # A browser doing DNS-over-HTTPS resolves names itself and never reads the hosts
 # file, which silently defeats everything above. Safari uses the system resolver,

@@ -71,9 +71,13 @@ rm -f /usr/local/bin/gambleguard /usr/local/bin/gambleguard-watch \
 rm -rf "$SHARE"
 
 # hand DNS back to DHCP, but only on services the guard pointed at the filtering resolver
-DNS="194.242.2.6 2a07:e340::6"
+# remove only OUR resolver entries; any other server (e.g. a still-working filter from
+# another blocker) is left exactly where it was
 networksetup -listallnetworkservices 2>/dev/null | grep -v -e '^An asterisk' -e '^\*' | while IFS= read -r S; do
-  [ "$(networksetup -getdnsservers "$S" 2>/dev/null | paste -sd' ' -)" = "$DNS" ] && networksetup -setdnsservers "$S" empty
+  CUR=$(networksetup -getdnsservers "$S" 2>/dev/null | grep -E '^[0-9a-fA-F.:]+$')
+  echo "$CUR" | grep -qE '^(194\.242\.2\.6|2a07:e340::6)$' || continue
+  REST=$(echo "$CUR" | grep -vE '^(194\.242\.2\.6|2a07:e340::6)$' | paste -sd' ' -)
+  if [ -n "$REST" ]; then networksetup -setdnsservers "$S" $REST; else networksetup -setdnsservers "$S" empty; fi
 done || true
 TMP=$(mktemp); trap 'rm -f "$TMP"' EXIT
 sed "/^${MARK_A}\$/,/^${MARK_B}\$/d" /etc/hosts > "$TMP"
