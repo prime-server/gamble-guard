@@ -1,0 +1,21 @@
+#!/bin/bash
+# gambleguard-watch - restores the main guard if it is deleted or unloaded.
+# The two daemons restore each other, so removing one is not enough.
+PRISTINE=/usr/local/share/gambleguard/pristine
+BIN=/usr/local/bin/gambleguard
+PLIST=/Library/LaunchDaemons/com.gambleguard.plist
+
+[ -d "$PRISTINE" ] || exit 0
+if [ ! -x "$BIN" ] && [ -f "$PRISTINE/gambleguard" ]; then
+  install -m 755 "$PRISTINE/gambleguard" "$BIN"; chflags schg "$BIN" 2>/dev/null
+  logger -t gambleguard-watch "restored missing guard binary"
+fi
+if [ ! -f "$PLIST" ] && [ -f "$PRISTINE/com.gambleguard.plist" ]; then
+  install -m 644 -o root -g wheel "$PRISTINE/com.gambleguard.plist" "$PLIST"
+  chflags schg "$PLIST" 2>/dev/null
+  logger -t gambleguard-watch "restored missing guard plist"
+fi
+launchctl print system/com.gambleguard >/dev/null 2>&1 || {
+  launchctl bootstrap system "$PLIST" 2>/dev/null && logger -t gambleguard-watch "re-bootstrapped guard"
+}
+exit 0

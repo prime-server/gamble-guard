@@ -13,6 +13,16 @@ cd gamble-guard
 sudo ./install.sh
 ```
 
+Or open the folder in [Claude Code](https://claude.com/claude-code) and say *"install this"* —
+the repo ships a `CLAUDE.md` that tells the agent how, and tells it never to help you undo it.
+
+### Make it stick
+
+```sh
+PARTNER=1 sudo ./install.sh                  # partner sets a passphrase you never see
+sudo ./harden.sh partneradmin "Their Name"   # partner holds admin; you cannot sudo at all
+```
+
 Or, in one line:
 
 ```sh
@@ -70,9 +80,13 @@ sudo ./uninstall.sh
 
 Worth stating plainly, because a tool you trust too much is worse than one you understand:
 
-- **This is a speed bump, not a wall.** If you hold the admin password on the machine, you can
-  remove this in under a minute. The goal is to convert a thirty-second impulse into a deliberate,
-  multi-step, sober-minded act. That gap is usually the whole fight — but it is a gap, not a lock.
+- **With the admin password, you can remove this.** Plain install is a speed bump: two daemons
+  that restore each other, files flagged immutable, and a 7-day cooling-off on `uninstall.sh`.
+  That turns a thirty-second impulse into a week-long deliberate act, which is usually the whole
+  fight — but anyone with `sudo` can shortcut it.
+- **`harden.sh` is the only unremovable configuration.** Without admin rights there is no `sudo`,
+  so there is nothing to shortcut. Everything else is friction, honestly described.
+  Do not believe any blocker that claims otherwise while leaving you as an admin.
 - **A VPN, a phone, or another computer routes around it entirely.** This protects one Mac.
 - **Hosts entries have no wildcards.** A brand-new domain is unblocked until the upstream list
   catches up. Re-run the installer periodically.

@@ -46,6 +46,14 @@ defaults write "$FIREFOX" "Preferences__network.trr.mode__Status" -string locked
 defaults write "$FIREFOX" "Preferences__network.trr.uri__Value" -string ""
 defaults write "$FIREFOX" "Preferences__network.trr.uri__Status" -string locked
 
+# --- 3. keep the peer watchdog alive (it does the same for this script) ---
+PRISTINE=/usr/local/share/gambleguard/pristine
+if [ -d "$PRISTINE" ]; then
+  [ -x /usr/local/bin/gambleguard-watch ] || { install -m 755 "$PRISTINE/gambleguard-watch" /usr/local/bin/gambleguard-watch 2>/dev/null && chflags schg /usr/local/bin/gambleguard-watch 2>/dev/null; }
+  [ -f /Library/LaunchDaemons/com.gambleguard.watch.plist ] || { install -m 644 -o root -g wheel "$PRISTINE/com.gambleguard.watch.plist" /Library/LaunchDaemons/com.gambleguard.watch.plist 2>/dev/null && chflags schg /Library/LaunchDaemons/com.gambleguard.watch.plist 2>/dev/null; }
+  launchctl print system/com.gambleguard.watch >/dev/null 2>&1 || launchctl bootstrap system /Library/LaunchDaemons/com.gambleguard.watch.plist 2>/dev/null || true
+fi
+
 FFDIST="/Applications/Firefox.app/Contents/Resources/distribution"
 if [ -d "/Applications/Firefox.app" ]; then
   mkdir -p "$FFDIST"

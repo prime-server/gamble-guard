@@ -1,50 +1,70 @@
 #!/bin/bash
 # gamble-guard installer. Run with sudo.
-#   sudo ./install.sh                 install or update
-#   LIST_URL=... sudo ./install.sh    use a different blocklist
+#   sudo ./install.sh                         install or update
+#   PARTNER=1 sudo ./install.sh               also set an accountability passphrase
+#   LIST_URL=... sudo ./install.sh            use a different blocklist
 set -euo pipefail
-
 [ "$(id -u)" = 0 ] || { echo "Run with sudo: sudo ./install.sh"; exit 1; }
 
 LIST_URL="${LIST_URL:-https://blocklistproject.github.io/Lists/gambling.txt}"
 SHARE=/usr/local/share/gambleguard
-BIN=/usr/local/bin/gambleguard
-PLIST=/Library/LaunchDaemons/com.gambleguard.plist
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "==> fetching blocklist"
-TMP=$(mktemp)
-trap 'rm -f "$TMP"' EXIT
+TMP=$(mktemp); CLEAN=$(mktemp)
+trap 'rm -f "$TMP" "$CLEAN"' EXIT
 curl -fsSL --max-time 120 "$LIST_URL" -o "$TMP"
-
-# normalise to "0.0.0.0 domain", lowercase, deduped
-CLEAN=$(mktemp)
 grep -E '^0\.0\.0\.0 [a-zA-Z0-9][a-zA-Z0-9.-]*$' "$TMP" | tr 'A-Z' 'a-z' | sort -u > "$CLEAN"
-# brand mirrors that the upstream list has not caught up with yet
-if [ -f "$SRC/extra-domains.txt" ]; then
-  cat "$SRC/extra-domains.txt" >> "$CLEAN"
-  sort -u "$CLEAN" -o "$CLEAN"
-fi
+[ -f "$SRC/extra-domains.txt" ] && cat "$SRC/extra-domains.txt" >> "$CLEAN" && sort -u "$CLEAN" -o "$CLEAN"
 COUNT=$(grep -c . "$CLEAN" || true)
-[ "$COUNT" -gt 1000 ] || { echo "Blocklist looks wrong ($COUNT entries). Aborting."; rm -f "$CLEAN"; exit 1; }
+[ "$COUNT" -gt 1000 ] || { echo "Blocklist looks wrong ($COUNT entries). Aborting."; exit 1; }
 echo "    $COUNT domains"
 
 # allow a clean re-run over a previous install
-chflags noschg "$BIN" "$PLIST" "$SHARE/blocklist.txt" /etc/hosts 2>/dev/null || true
+chflags -R noschg "$SHARE" 2>/dev/null || true
+chflags noschg /usr/local/bin/gambleguard /usr/local/bin/gambleguard-watch \
+  /Library/LaunchDaemons/com.gambleguard.plist \
+  /Library/LaunchDaemons/com.gambleguard.watch.plist /etc/hosts 2>/dev/null || true
 
 echo "==> installing"
-mkdir -p "$SHARE"
-install -m 644 "$CLEAN" "$SHARE/blocklist.txt"; rm -f "$CLEAN"
-install -m 755 "$SRC/src/gambleguard" "$BIN"          # applies the hosts block and the Chrome/Firefox DNS policies
-install -m 644 -o root -g wheel "$SRC/src/com.gambleguard.plist" "$PLIST"
+mkdir -p "$SHARE/pristine"
+install -m 644 "$CLEAN" "$SHARE/blocklist.txt"
+install -m 755 "$SRC/src/gambleguard"       /usr/local/bin/gambleguard
+install -m 755 "$SRC/src/gambleguard-watch" /usr/local/bin/gambleguard-watch
+install -m 644 -o root -g wheel "$SRC/src/com.gambleguard.plist"       /Library/LaunchDaemons/com.gambleguard.plist
+install -m 644 -o root -g wheel "$SRC/src/com.gambleguard.watch.plist" /Library/LaunchDaemons/com.gambleguard.watch.plist
+# pristine copies the watchdogs restore from
+install -m 644 "$SRC/src/gambleguard"       "$SHARE/pristine/gambleguard"
+install -m 644 "$SRC/src/gambleguard-watch" "$SHARE/pristine/gambleguard-watch"
+install -m 644 "$SRC/src/com.gambleguard.plist"       "$SHARE/pristine/com.gambleguard.plist"
+install -m 644 "$SRC/src/com.gambleguard.watch.plist" "$SHARE/pristine/com.gambleguard.watch.plist"
 
-launchctl bootout system "$PLIST" 2>/dev/null || true
-launchctl bootstrap system "$PLIST"
-"$BIN"
+if [ "${PARTNER:-0}" = "1" ]; then
+  echo
+  echo ">>> Hand the keyboard to your accountability partner."
+  printf "    Passphrase (hidden, you must not see it): "
+  read -rs P1; echo
+  printf "    Again: "; read -rs P2; echo
+  [ -n "$P1" ] && [ "$P1" = "$P2" ] || { echo "Passphrases empty or did not match."; exit 1; }
+  printf '%s' "$P1" | shasum -a 256 | awk '{print $1}' > "$SHARE/partner.sha256"
+  chmod 600 "$SHARE/partner.sha256"
+  echo "    Stored. Removal now requires this passphrase."
+fi
 
-# make the mechanism itself non-trivial to delete
-chflags schg "$BIN" "$PLIST" "$SHARE/blocklist.txt"
+for L in com.gambleguard com.gambleguard.watch; do
+  launchctl bootout "system/$L" 2>/dev/null || true
+  launchctl bootstrap system "/Library/LaunchDaemons/$L.plist"
+done
+/usr/local/bin/gambleguard          # hosts block + Chrome/Firefox DNS policy
+
+chflags schg /usr/local/bin/gambleguard /usr/local/bin/gambleguard-watch \
+  /Library/LaunchDaemons/com.gambleguard.plist \
+  /Library/LaunchDaemons/com.gambleguard.watch.plist \
+  "$SHARE/blocklist.txt" "$SHARE/pristine"/* 2>/dev/null || true
 
 echo
-echo "Done. $COUNT domains blocked, guard re-applies every 120s."
+echo "Done. $COUNT domains blocked across Chrome, Firefox and Safari."
+echo "Two daemons re-apply it every 120s and restore each other if deleted."
+[ -f "$SHARE/partner.sha256" ] && echo "Removal requires the partner passphrase." \
+  || echo "Removal requires a 7-day cooling-off: sudo ./uninstall.sh"
 echo "Verify:  dscacheutil -q host -a name bet365.com"
