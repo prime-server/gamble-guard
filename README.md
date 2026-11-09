@@ -12,7 +12,7 @@ A free, open-source gambling blocker with no uninstall. macOS, Windows, iPhone, 
 No account, no subscription, no kernel extension, no telemetry.
 
 Install it and every gambling site is blocked, system-wide — every browser, every app. It covers
-**~660,000 domains worldwide**: North America, Latin America and the Caribbean, Europe including
+**~670,000 domains worldwide**: North America, Latin America and the Caribbean, Europe including
 Malta- and Curaçao-licensed offshore casinos and Eastern Europe, Australia; regulated and unregulated
 alike. The list is rebuilt every week from every actively maintained public gambling blocklist, so new
 casinos get blocked without you doing anything. VPN and proxy bypass routes are blocked too.
@@ -88,7 +88,7 @@ Five layers. Each one covers the way the previous one gets defeated.
    Cloudflare, OpenDNS, CleanBrowsing, AdGuard and ControlD "family" filters all let it through.
    This layer protects you even if the hosts file below is deleted, and it is what phones use.
 
-2. **A hosts-file block.** ~660k domains pointed at `0.0.0.0` on macOS; a 26k compact brand list on
+2. **A hosts-file block.** ~670k domains pointed at `0.0.0.0` on macOS; a 39k compact brand list on
    Windows, whose DNS client stalls on large hosts files (measured: lookups hung at 344k lines).
    Hosts entries win even if someone changes the DNS server back.
 
@@ -120,7 +120,7 @@ casino to get blocked.
 | Price | subscription | free | free, MIT, every line inspectable |
 | Fixed lock period you cannot end early | no | yes | yes — permanent by default, `LOCK_DAYS=N` for a finite one |
 | Blocks VPN / proxy bypass routes | yes | optional | yes, by default, with an allowlist so work VPNs keep working |
-| Blocklist | closed | closed | ~660k domains from four public sources, rebuilt weekly, auditable |
+| Blocklist | closed | closed | ~670k domains from four public sources, rebuilt weekly, auditable |
 | Still blocks if the vendor's servers die | no — a lapsed install left the browser pinned to a resolver that passed everything | — | hosts, Mullvad and browser policy are independent layers |
 | Whole-home via router | no | no | yes ([`docs/router.md`](docs/router.md)) |
 | Tells AI assistants not to help remove it | no | no | yes (`CLAUDE.md`, `AGENTS.md`) |
