@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 260" width="1200" height="260" role="img" aria-labelledby="t d">
+<title id="t">Platforms: Mac, Windows, iPhone, Android</title>
+<desc id="d">Four hand-drawn devices with a green check on each screen and the install hint under each: one command, one command, a profile, Private DNS.</desc>
+<defs>
+<filter id="wob" x="-5%" y="-5%" width="110%" height="110%">
+<feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="2" seed="5" result="n"/>
+<feDisplacementMap in="SourceGraphic" in2="n" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+</filter>
+<style>
+.hand{font-family:'Bradley Hand','Segoe Print','Comic Sans MS','Marker Felt',cursive,sans-serif}
+.ink{fill:none;stroke:#1f2a44;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round}
+.ok{fill:none;stroke:#4f9a6a;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+.h{font-size:26px;font-weight:bold;fill:#1f2a44;text-anchor:middle}
+.s{font-size:20px;fill:#4a5368;text-anchor:middle}
+</style>
+</defs>
+
+<g filter="url(#wob)">
+<rect x="10" y="10" width="1180" height="240" rx="26" fill="#fbf7ee" stroke="#1f2a44" stroke-width="3.5"/>
+</g>
+
+<g filter="url(#wob)" class="ink">
+<!-- Mac laptop -->
+<rect x="100" y="46" width="120" height="78" rx="8" fill="#fff"/>
+<circle cx="160" cy="53" r="2" fill="#1f2a44" stroke="none"/>
+<path d="M 85 124 H 235 L 243 140 H 77 Z" fill="#fff"/>
+<path class="ok" d="M 146 88 L 156 98 L 176 74"/>
+<!-- Windows desktop -->
+<rect x="390" y="40" width="140" height="92" rx="6" fill="#fff"/>
+<path d="M 452 132 V 150 M 468 132 V 150 M 428 152 H 492"/>
+<path class="ok" d="M 446 90 L 456 100 L 476 76"/>
+<!-- iPhone -->
+<rect x="732" y="40" width="56" height="114" rx="11" fill="#fff"/>
+<path d="M 750 49 H 770" stroke-width="4"/>
+<path d="M 750 146 H 770" stroke-width="3"/>
+<path class="ok" d="M 748 98 L 757 107 L 774 86"/>
+<!-- Android -->
+<rect x="1032" y="40" width="56" height="114" rx="7" fill="#fff"/>
+<circle cx="1046" cy="50" r="2.5" fill="#1f2a44" stroke="none"/>
+<path d="M 1091 76 V 94" stroke-width="3"/>
+<path class="ok" d="M 1048 98 L 1057 107 L 1074 86"/>
+</g>
+
+<text class="hand h" x="160" y="196">Mac</text>
+<text class="hand s" x="160" y="226">one command</text>
+<text class="hand h" x="460" y="196">Windows</text>
+<text class="hand s" x="460" y="226">one command</text>
+<text class="hand h" x="760" y="196">iPhone</text>
+<text class="hand s" x="760" y="226">a profile</text>
+<text class="hand h" x="1060" y="196">Android</text>
+<text class="hand s" x="1060" y="226">Private DNS</text>
+</svg>

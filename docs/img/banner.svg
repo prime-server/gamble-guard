@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="1200" height="400" role="img" aria-labelledby="t d">
+<title id="t">gamble-guard</title>
+<desc id="d">Hand-drawn shield with a padlock, the project name, the tagline "a blocker that puts itself back", and small laptop and phone sketches.</desc>
+<defs>
+<filter id="wob" x="-5%" y="-5%" width="110%" height="110%">
+<feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="2" seed="7" result="n"/>
+<feDisplacementMap in="SourceGraphic" in2="n" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+</filter>
+<style>
+.hand{font-family:'Bradley Hand','Segoe Print','Comic Sans MS','Marker Felt',cursive,sans-serif}
+.ink{fill:none;stroke:#1f2a44;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round}
+</style>
+</defs>
+
+<!-- paper card -->
+<g filter="url(#wob)">
+<rect x="10" y="10" width="1180" height="380" rx="30" fill="#fbf7ee" stroke="#1f2a44" stroke-width="3.5"/>
+</g>
+
+<!-- shield + padlock -->
+<g filter="url(#wob)" stroke="#1f2a44" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+<path d="M 236 92 L 336 124 C 338 234 308 298 238 332 C 168 298 138 234 140 124 Z" fill="none" stroke="#d8d0bd" stroke-width="3"/>
+<path d="M 230 86 L 330 118 C 332 228 302 292 232 326 C 162 292 132 228 134 118 Z" fill="#f6d78a"/>
+<path d="M 152 140 L 176 122 M 154 166 L 188 138 M 158 192 L 200 156 M 164 216 L 210 176" fill="none" stroke="#e3a33a" stroke-width="2.5"/>
+<path d="M 207 192 V 172 A 25 25 0 0 1 257 172 V 192" fill="none" stroke-width="6"/>
+<rect x="196" y="190" width="72" height="56" rx="10" fill="#1f2a44"/>
+<circle cx="232" cy="212" r="7" fill="#fbf7ee" stroke="none"/>
+<path d="M 232 216 V 233" stroke="#fbf7ee" stroke-width="5"/>
+</g>
+
+<!-- title + tagline -->
+<text class="hand" x="400" y="178" font-size="86" font-weight="bold" fill="#1f2a44">gamble-guard</text>
+<path class="ink" filter="url(#wob)" d="M 404 198 C 480 208 560 192 640 202 S 820 196 900 204" stroke="#e3a33a" stroke-width="5"/>
+<text class="hand" x="404" y="254" font-size="34" fill="#4a5368">a blocker that puts itself back</text>
+
+<!-- platform doodles -->
+<g filter="url(#wob)" class="ink">
+<!-- laptop, apple-ish -->
+<rect x="405" y="292" width="84" height="52" rx="6" fill="#fff"/>
+<path d="M 394 344 H 500 L 506 356 H 388 Z" fill="#fff"/>
+<circle cx="447" cy="318" r="7" fill="#1f2a44" stroke="none"/>
+<path d="M 449 309 Q 452 303 458 302" stroke-width="2.5"/>
+<!-- laptop, windows-ish -->
+<rect x="550" y="292" width="84" height="52" rx="6" fill="#fff"/>
+<path d="M 539 344 H 645 L 651 356 H 533 Z" fill="#fff"/>
+<rect x="580" y="306" width="24" height="24" rx="2" fill="#1f2a44" stroke="none"/>
+<path d="M 592 306 V 330 M 580 318 H 604" stroke="#fff" stroke-width="2.5"/>
+<!-- phone -->
+<rect x="700" y="288" width="38" height="68" rx="8" fill="#fff"/>
+<path d="M 712 296 H 726 M 712 348 H 726" stroke-width="3"/>
+</g>
+<text class="hand" x="447" y="380" font-size="18" fill="#4a5368" text-anchor="middle">mac</text>
+<text class="hand" x="592" y="380" font-size="18" fill="#4a5368" text-anchor="middle">windows</text>
+<text class="hand" x="719" y="380" font-size="18" fill="#4a5368" text-anchor="middle">phone</text>
+<text class="hand" x="780" y="320" font-size="22" fill="#4a5368">no account, no subscription,</text>
+<text class="hand" x="780" y="350" font-size="22" fill="#4a5368">no telemetry. free, MIT.</text>
+
+<!-- a blocked die, right -->
+<g filter="url(#wob)" class="ink" transform="translate(1012 118) scale(1.9)">
+<rect x="0" y="0" width="48" height="48" rx="9" fill="#fff"/>
+<circle cx="12" cy="12" r="3.5" fill="#1f2a44" stroke="none"/>
+<circle cx="24" cy="24" r="3.5" fill="#1f2a44" stroke="none"/>
+<circle cx="36" cy="36" r="3.5" fill="#1f2a44" stroke="none"/>
+<circle cx="36" cy="12" r="3.5" fill="#1f2a44" stroke="none"/>
+<circle cx="12" cy="36" r="3.5" fill="#1f2a44" stroke="none"/>
+<path d="M -10 -10 L 58 58 M 58 -10 L -10 58" stroke="#c2574f" stroke-width="4"/>
+</g>
+<text class="hand" x="1058" y="254" font-size="22" fill="#c2574f" text-anchor="middle">blocked</text>
+</svg>

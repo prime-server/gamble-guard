@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 260" width="900" height="260" role="img" aria-labelledby="t d">
+<title id="t">The 7-day cooling-off</title>
+<desc id="d">A lightning bolt and racing heart on the left (the urge, minutes), a seven-dot path across the middle, and a steaming mug on the right (a week later, calm).</desc>
+<defs>
+<filter id="wob" x="-5%" y="-5%" width="110%" height="110%">
+<feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="2" seed="3" result="n"/>
+<feDisplacementMap in="SourceGraphic" in2="n" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+</filter>
+<style>
+.hand{font-family:'Bradley Hand','Segoe Print','Comic Sans MS','Marker Felt',cursive,sans-serif}
+.ink{fill:none;stroke:#1f2a44;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round}
+.h{font-size:24px;font-weight:bold;fill:#1f2a44;text-anchor:middle}
+.s{font-size:18px;fill:#4a5368;text-anchor:middle}
+.d{font-size:16px;fill:#8a8f99;text-anchor:middle}
+</style>
+</defs>
+
+<g filter="url(#wob)">
+<rect x="10" y="10" width="880" height="240" rx="26" fill="#fbf7ee" stroke="#1f2a44" stroke-width="3.5"/>
+</g>
+
+<!-- the urge -->
+<g filter="url(#wob)" class="ink">
+<path d="M 118 46 L 90 122 L 116 119 L 98 182 L 148 98 L 120 102 L 138 46 Z" fill="#f6d78a"/>
+<path d="M 196 152 C 176 136 164 120 174 106 C 182 96 196 100 196 112 C 196 100 212 96 220 106 C 230 120 216 136 196 152 Z" fill="#c2574f"/>
+<path d="M 236 100 L 246 94 M 238 116 L 250 116 M 236 132 L 246 138" stroke="#c2574f" stroke-width="3"/>
+</g>
+<text class="hand h" x="160" y="214">the urge</text>
+<text class="hand s" x="160" y="238">lasts minutes</text>
+
+<!-- the week -->
+<text class="hand" x="520" y="78" font-size="21" fill="#1f2a44" text-anchor="middle">uninstall starts a 7-day clock and removes nothing</text>
+<g filter="url(#wob)" class="ink">
+<path d="M 290 142 L 750 128" stroke="#8a8f99" stroke-width="3" stroke-dasharray="7 7"/>
+<circle cx="290" cy="142" r="8" fill="#c2574f"/>
+<circle cx="367" cy="139.7" r="8" fill="#fbf7ee"/>
+<circle cx="444" cy="137.3" r="8" fill="#fbf7ee"/>
+<circle cx="520" cy="135" r="8" fill="#fbf7ee"/>
+<circle cx="597" cy="132.7" r="8" fill="#fbf7ee"/>
+<circle cx="674" cy="130.3" r="8" fill="#fbf7ee"/>
+<circle cx="750" cy="128" r="8" fill="#4f9a6a"/>
+</g>
+<text class="hand d" x="290" y="174">day 1</text>
+<text class="hand d" x="367" y="172">2</text>
+<text class="hand d" x="444" y="170">3</text>
+<text class="hand d" x="520" y="168">4</text>
+<text class="hand d" x="597" y="166">5</text>
+<text class="hand d" x="674" y="164">6</text>
+<text class="hand d" x="750" y="162">day 7</text>
+<text class="hand" x="520" y="212" font-size="18" fill="#4a5368" text-anchor="middle">run it again a week later, still sure? then it goes.</text>
+
+<!-- calm -->
+<g filter="url(#wob)" class="ink">
+<rect x="792" y="104" width="58" height="54" rx="9" fill="#fff"/>
+<path d="M 850 116 Q 876 131 850 150"/>
+<path d="M 806 92 Q 800 78 810 66 M 822 92 Q 816 78 826 66 M 838 92 Q 832 78 842 66" stroke="#8a8f99" stroke-width="2.5"/>
+</g>
+<text class="hand h" x="822" y="214">calm</text>
+<text class="hand s" x="822" y="238">a week later</text>
+</svg>

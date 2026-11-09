@@ -1,3 +1,10 @@
+<p align="center"><img src="docs/img/banner.svg" width="100%" alt="gamble-guard: a hand-drawn shield with a padlock. A blocker that puts itself back."></p>
+<p align="center">
+<img alt="license: MIT" src="https://img.shields.io/badge/license-MIT-4f9a6a">
+<img alt="platforms: macOS, Windows, iOS, Android" src="https://img.shields.io/badge/platforms-macOS%20%C2%B7%20Windows%20%C2%B7%20iOS%20%C2%B7%20Android-1f2a44">
+<img alt="blocklist: rebuilt weekly" src="https://img.shields.io/badge/blocklist-weekly-e3a33a">
+</p>
+
 # gamble-guard
 
 A free, open-source gambling blocker that is built to be hard to remove. macOS, Windows, iPhone, Android.
@@ -8,6 +15,8 @@ when removed. The list is rebuilt automatically every week from every actively m
 gambling blocklist, so new casinos get blocked without you doing anything.
 
 ## Install
+
+<p align="center"><img src="docs/img/platforms.svg" width="100%" alt="Four hand-drawn devices: Mac (one command), Windows (one command), iPhone (a profile), Android (Private DNS)."></p>
 
 **macOS** — one command, needs your password:
 
@@ -34,16 +43,25 @@ Verify (desktop): `bet365.com` should fail to load, and resolve to `0.0.0.0` or 
 
 ### Make it stick
 
+<p align="center"><img src="docs/img/cooling-off.svg" width="80%" alt="The 7-day cooling-off: the urge lasts minutes on the left, a seven-day path in the middle, calm a week later on the right."></p>
+
 | Mode | What it adds | Can the user remove it? |
 |---|---|---|
 | default | watchdog pair, immutable files, 7-day cooling-off on uninstall | yes, with the admin password and patience |
 | `PARTNER=1 sudo ./install.sh` | a passphrase someone else holds; removal requires it | only by bypassing the installer by hand |
 | `sudo ./harden.sh <user> "Name"` | partner-held admin account, you become a Standard user | **no** — there is no `sudo` to shortcut with |
+| `LOCK_DAYS=90 sudo ./install.sh` | a fixed lock: uninstall refuses until the date, cooling-off or not | only with a partner passphrase |
+| `VPN_BLOCK=1 sudo ./install.sh` | also blocks 16k VPN / proxy / DoH-bypass domains (Tailscale, Mullvad DNS, corporate VPNs allowlisted) | — |
+
+Flags combine: `LOCK_DAYS=90 VPN_BLOCK=1 PARTNER=1 sudo ./install.sh`. On Windows: `install.ps1 -LockDays 90 -Partner`.
+Whole-home coverage through your router, which covers phones and TVs too: [`docs/router.md`](docs/router.md).
 
 The same tiers exist on Windows (`install.ps1 -Partner`); account hardening there is a Standard account
 with the partner holding the Administrator password.
 
 ## How it works
+
+<p align="center"><img src="docs/img/layers.svg" width="100%" alt="Five hand-drawn layers: filtering DNS, hosts file, browsers locked to system DNS, two watchdogs restoring each other, and a 7-day cooling-off on removal."></p>
 
 Five layers. Each one covers the way the previous one gets defeated.
 
@@ -78,6 +96,23 @@ if a source vanishes or a major infrastructure domain sneaks in, and writes `lis
 runs it every Monday and commits the result; every installed client pulls the new list on its next
 weekly refresh. Mullvad updates its own filter server-side. Nobody has to ship a release for a new
 casino to get blocked.
+
+## Compared with Gamban and BetBlocker
+
+|  | Gamban | BetBlocker | gamble-guard |
+|---|---|---|---|
+| Price | subscription | free | free, MIT, every line inspectable |
+| Fixed lock period you cannot end early | no | yes | yes (`LOCK_DAYS`), partner passphrase excepted |
+| Blocks VPN / proxy bypass routes | yes | optional | optional, with an allowlist so work VPNs keep working |
+| Blocklist | closed | closed | ~660k domains from four public sources, rebuilt weekly, auditable |
+| Still blocks if the vendor's servers die | no — a lapsed install left the browser pinned to a resolver that passed everything | — | hosts, Mullvad and browser policy are independent layers |
+| Whole-home via router | no | no | yes ([`docs/router.md`](docs/router.md)) |
+| Tells AI assistants not to help remove it | no | no | yes (`CLAUDE.md`, `AGENTS.md`) |
+| Native phone apps | yes | yes | no — a DNS profile and Screen Time |
+| Removes itself in a weak moment | needs support contact | not before the period ends | 7-day cooling-off, lock period, or partner passphrase |
+
+Where they win: polished native apps, especially on phones. Where nobody wins: an administrator who keeps
+their password can remove any of the three; only `harden.sh` changes that.
 
 ## Honest limitations
 
