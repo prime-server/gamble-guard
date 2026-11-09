@@ -8,7 +8,7 @@ you remembered to configure — and puts the block back automatically if it is r
 ## Install
 
 ```sh
-git clone https://github.com/OWNER/gamble-guard.git
+git clone https://github.com/prime-server/gamble-guard.git
 cd gamble-guard
 sudo ./install.sh
 ```
@@ -16,7 +16,7 @@ sudo ./install.sh
 Or, in one line:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/OWNER/gamble-guard/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/prime-server/gamble-guard/main/install.sh | sudo bash
 ```
 
 (Piping a script into a root shell is a habit worth distrusting in general. Read `install.sh`
