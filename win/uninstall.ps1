@@ -3,7 +3,7 @@
 #   .\uninstall.ps1 -Status    how long is left
 param([switch]$Status)
 $ErrorActionPreference = 'Stop'
-$Share = 'C:\Program Files\gamble-guard'
+$Share = 'C:\ProgramData\gamble-guard'
 $Req   = Join-Path $Share 'unlock.request'
 $Part  = Join-Path $Share 'partner.sha256'
 $Days  = if ($env:DELAY_DAYS) { [int]$env:DELAY_DAYS } else { 7 }

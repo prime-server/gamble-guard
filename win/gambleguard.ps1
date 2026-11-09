@@ -3,7 +3,7 @@
 $ErrorActionPreference = 'SilentlyContinue'
 $MarkA = '# >>> gamble-guard >>>'
 $MarkB = '# <<< gamble-guard <<<'
-$Share = 'C:\Program Files\gamble-guard'
+$Share = 'C:\ProgramData\gamble-guard'
 $List  = Join-Path $Share 'blocklist.txt'
 $Hosts = Join-Path $env:SystemRoot 'System32\drivers\etc\hosts'
 
@@ -47,6 +47,6 @@ Set-Pol 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox\DNSOverHTTPS' 'Locked'  1 'DWor
 
 # --- 3. keep the peer task alive -----------------------------------------
 if (-not (Get-ScheduledTask -TaskName 'gamble-guard-watch' -EA SilentlyContinue)) {
-  $cmd = "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$Share\watch.ps1`""
+  $cmd = "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File $Share\watch.ps1"
   schtasks.exe /Create /TN 'gamble-guard-watch' /TR $cmd /SC MINUTE /MO 2 /RU SYSTEM /RL HIGHEST /F | Out-Null
 }
