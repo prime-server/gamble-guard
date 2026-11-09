@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PayloadContent</key>
+	<array>
+		<dict>
+			<key>DNSSettings</key>
+			<dict>
+				<key>DNSProtocol</key>
+				<string>TLS</string>
+				<key>ServerName</key>
+				<string>family.dns.mullvad.net</string>
+				<key>ServerAddresses</key>
+				<array>
+					<string>194.242.2.6</string>
+					<string>2a07:e340::6</string>
+				</array>
+			</dict>
+			<key>PayloadDescription</key>
+			<string>Sends all DNS lookups over encrypted DNS-over-TLS to Mullvad's gambling-filtered resolver (family.dns.mullvad.net). Gambling domains fail to resolve in every app and browser.</string>
+			<key>PayloadDisplayName</key>
+			<string>gamble-guard DNS (DNS-over-TLS)</string>
+			<key>PayloadIdentifier</key>
+			<string>org.gambleguard.dns.dot</string>
+			<key>PayloadOrganization</key>
+			<string>gamble-guard</string>
+			<key>PayloadType</key>
+			<string>com.apple.dnsSettings.managed</string>
+			<key>PayloadUUID</key>
+			<string>0E5C3855-9853-42D6-BF27-8E71B6AD52DE</string>
+			<key>PayloadVersion</key>
+			<integer>1</integer>
+		</dict>
+	</array>
+	<key>PayloadDescription</key>
+	<string>gamble-guard: blocks gambling sites by routing DNS through Mullvad's free, no-account gambling-filtered resolver. Removal is only prevented on supervised devices; on a normal iPhone you can delete this profile in Settings, so pair it with a Screen Time passcode held by someone else.</string>
+	<key>PayloadDisplayName</key>
+	<string>gamble-guard</string>
+	<key>PayloadIdentifier</key>
+	<string>org.gambleguard.dns</string>
+	<key>PayloadOrganization</key>
+	<string>gamble-guard</string>
+	<key>PayloadRemovalDisallowed</key>
+	<true/>
+	<key>PayloadType</key>
+	<string>Configuration</string>
+	<key>PayloadUUID</key>
+	<string>DB928668-2B97-4B43-93F7-BEE7869F6B91</string>
+	<key>PayloadVersion</key>
+	<integer>1</integer>
+</dict>
+</plist>
