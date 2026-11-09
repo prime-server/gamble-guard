@@ -47,10 +47,6 @@ Set-Pol 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox\DNSOverHTTPS' 'Locked'  1 'DWor
 
 # --- 3. keep the peer task alive -----------------------------------------
 if (-not (Get-ScheduledTask -TaskName 'gamble-guard-watch' -EA SilentlyContinue)) {
-  $a = New-ScheduledTaskAction -Execute 'powershell.exe' `
-       -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$Share\watch.ps1`""
-  $t = New-ScheduledTaskTrigger -Once -At (Get-Date) `
-       -RepetitionInterval (New-TimeSpan -Minutes 2) -RepetitionDuration ([TimeSpan]::MaxValue)
-  $p = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
-  Register-ScheduledTask -TaskName 'gamble-guard-watch' -Action $a -Trigger $t -Principal $p -Force | Out-Null
+  $cmd = "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$Share\watch.ps1`""
+  schtasks.exe /Create /TN 'gamble-guard-watch' /TR $cmd /SC MINUTE /MO 2 /RU SYSTEM /RL HIGHEST /F | Out-Null
 }
