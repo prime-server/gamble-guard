@@ -1,0 +1,11 @@
+# Gambling brands that get a compact hosts entry on Windows (which cannot take the full list)
+# and TLD-mirror expansion everywhere. One token per line; matched as a domain-label prefix.
+bet365 betway 888casino 888sport 888poker williamhill draftkings fanduel pokerstars betmgm
+caesars bwin unibet ladbrokes paddypower betfair pinnacle bovada betonline mybookie ignitioncasino
+bodog sportsinteraction betrivers pointsbet thescore proline playnow espacejeux lotoquebec olg bclc
+wclc playalberta ggpoker partypoker betano betsson leovegas mrgreen casumo jackpotcity spincasino
+rubyfortune royalvegas luckynugget bet99 tonybet betvictor coral skybet sportingbet 10bet 22bet
+1xbet melbet betwinner parimatch mostbet pin-up vulkan stake roobet rainbet rollbit duelbits gamdom
+betfury bitcasino cloudbet sportsbet thunderpick jackbit metaspins trustdice primedice nanogames
+csgoempire csgoroll hypedrop keydrop key-drop datdrop rustclash bitstarz mystake bcgame betplay winna
+bitsler fortunejack 1xbit cryptoleo wildcasino luckydice coinpoker betchain mbitcasino sportbet
